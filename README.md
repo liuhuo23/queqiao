@@ -49,7 +49,7 @@ make agent
 sudo install -m 0755 dist/nrp-agent /usr/local/bin/nrp-agent
 
 # 首次运行：指定服务端地址（之后会记住）
-nrp-agent -s 39.107.230.175:7600
+nrp-agent -s 39.107.230.175:39999
 
 # 输出（示例）：
 #   ================= 设备待审批 =================
