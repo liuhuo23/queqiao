@@ -1,0 +1,19 @@
+# build output
+/dist/
+/bin/
+*.test
+*.out
+
+# local state / caches
+/.gomodcache/
+/.tmpnet/
+/.e2e*/
+/data/
+*.log
+
+# macOS
+.DS_Store
+
+# editor
+.idea/
+.vscode/

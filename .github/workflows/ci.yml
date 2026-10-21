@@ -1,0 +1,19 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: go vet ./...
+      - run: go test ./...
+      - run: go build ./...
+      - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /tmp/nrpd ./cmd/nrpd
+      - run: CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o /tmp/nrp-agent ./cmd/nrp-agent

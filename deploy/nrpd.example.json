@@ -1,0 +1,11 @@
+{
+  "control_addr": ":7600",
+  "web_addr": "127.0.0.1:7610",
+  "data_dir": "/var/lib/nrp",
+  "public_host": "39.107.230.175",
+  "public_bind_addr": "0.0.0.0",
+  "http_addr": "",
+  "port_range": [39000, 40000],
+  "log_level": "info",
+  "log_format": "text"
+}

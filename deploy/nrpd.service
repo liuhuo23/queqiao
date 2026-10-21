@@ -1,0 +1,20 @@
+[Unit]
+Description=NRP server (no-config reverse tunnel)
+Documentation=https://github.com/yourname/nrp
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/nrpd -config /etc/nrp/nrpd.json
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+# 可选加固（按需打开）：
+# NoNewPrivileges=true
+# PrivateTmp=true
+# ProtectSystem=full
+# ReadWritePaths=/var/lib/nrp
+
+[Install]
+WantedBy=multi-user.target

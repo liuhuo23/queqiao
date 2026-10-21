@@ -1,0 +1,16 @@
+[Unit]
+Description=NRP Agent (reverse tunnel client)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 首次运行请手动执行：nrp-agent -s <服务端地址>:7600
+# 实际安装推荐：nrp-agent install-service（会自动生成此 unit）
+ExecStart=/usr/local/bin/nrp-agent run
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

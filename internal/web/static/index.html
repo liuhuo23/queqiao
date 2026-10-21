@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<meta name="referrer" content="no-referrer" />
+<title>NRP 管理台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cpath d='M9.5 23V9l13 14V9' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/style.css" />
+<script src="/app.js" defer></script>
+</head>
+<body>
+  <!-- 启动占位：确认登录态之前避免登录页闪烁 -->
+  <div id="boot" class="boot" role="status" aria-live="polite">
+    <span class="spinner" aria-hidden="true"></span>
+    <span>正在连接 NRP 服务…</span>
+  </div>
+
+  <!-- 顶部 toast -->
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- 登录视图 -->
+  <section id="login-view" class="login-view" hidden>
+    <div class="login-card">
+      <div class="login-brand">
+        <span class="brand-mark brand-mark-lg" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M9.5 23V9l13 14V9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <div>
+          <h1 class="login-title">NRP 管理台</h1>
+          <p class="login-sub">免配置内网穿透 · 服务端集中管理</p>
+        </div>
+      </div>
+
+      <form id="login-form" class="form" novalidate>
+        <label class="field" for="login-username">
+          <span class="field-label">用户名</span>
+          <input id="login-username" class="input" type="text" name="username" autocomplete="username" spellcheck="false" autocapitalize="none" required />
+        </label>
+        <label class="field" for="login-password">
+          <span class="field-label">密码</span>
+          <input id="login-password" class="input" type="password" name="password" autocomplete="current-password" required />
+        </label>
+        <p id="login-error" class="form-error" role="alert" hidden></p>
+        <button id="login-submit" class="btn btn-primary btn-block" type="submit">
+          <span class="spinner spinner-sm" aria-hidden="true"></span><span id="login-submit-text">登录</span>
+        </button>
+      </form>
+
+      <p class="login-foot">
+        首次启动的随机管理员密码见服务端 stderr 输出，或 <code>data-dir/initial-admin.txt</code>（0600）。
+      </p>
+      <p id="login-version" class="login-version"></p>
+    </div>
+  </section>
+
+  <!-- 主视图 -->
+  <div id="app-view" class="app" hidden>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="#/overview" aria-label="NRP 管理台首页">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M9.5 23V9l13 14V9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="brand-name">NRP</span>
+          <span class="brand-sub">管理台</span>
+        </a>
+
+        <nav class="nav" aria-label="主导航">
+          <a class="nav-link" data-route="overview" href="#/overview">概览</a>
+          <a class="nav-link" data-route="devices" href="#/devices">设备<span id="nav-devices-count" class="nav-count" hidden></span></a>
+          <a class="nav-link" data-route="rules" href="#/rules">映射</a>
+          <a class="nav-link" data-route="logs" href="#/logs">日志</a>
+          <a class="nav-link" data-route="settings" href="#/settings">设置</a>
+        </nav>
+
+        <div class="topbar-right">
+          <span id="conn-badge" class="conn" data-state="connecting" title="与管理服务的连接状态">
+            <span class="conn-dot" aria-hidden="true"></span><span id="conn-text" class="conn-text">连接中…</span>
+          </span>
+          <span id="server-version" class="version-pill" title="服务端版本" hidden></span>
+          <span id="admin-name" class="admin-name"></span>
+          <button id="logout-btn" class="btn btn-ghost btn-sm" type="button">退出</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="page" class="page" tabindex="-1"></main>
+  </div>
+
+  <!-- 自实现弹窗挂载点 -->
+  <div id="modal-root"></div>
+
+  <noscript><p class="noscript">NRP 管理台需要启用 JavaScript 才能使用。</p></noscript>
+</body>
+</html>
