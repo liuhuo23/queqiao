@@ -1,25 +1,23 @@
-# 部署手册（服务端 39.107.230.175 + 本机 Agent）
+# 部署手册（服务端 YOUR_SERVER_IP + 本机 Agent）
 
-## 0. 服务器现状（部署前必读）
+## 0. 前置检查
 
-- 系统：Alibaba Cloud Linux 3 / x86_64 / systemd 239 / root 可用
-- 已占用端口：
-  - `frps`：7000（bindPort）、7500（dashboard）、80（vhostHTTP）、443（vhostHTTPS）
-  - `nps`：8024、2080、2443、43039
-  - 宝塔面板：38888；nginx 1.20.1 已安装（当前 80 被 frps 占用）
-- firewalld：已放行 `39000-40000/tcp`、22、80、443、7000 等
-- 阿里云安全组已放行 `39000-40000/tcp`；**实测 7600/tcp 未放行**。因此实际部署把控制端口放在 `39999/tcp`（已放行段内），规则端口范围设为 `39000-39998`。
+- Linux x86_64（systemd），root 权限
+- 一个公网可达的控制端口（默认 `:7600`；如果云安全组只放行固定端口段，可以把控制端口放进该段，例如 `:39999`）
+- 一段可用于公网映射的 TCP 端口（示例 `39000-40000`），需要在 firewalld 与云安全组放行
+- 管理台默认只监听 `127.0.0.1:7610`，通过 SSH 隧道访问
+- 如果 80/443 已被其它服务占用，HTTP 域名映射可先用 `:39080`
 
-鹊桥 端口规划：
+端口规划（示例）：
 
 | 用途 | 端口 | 备注 |
 |------|------|------|
-| 控制端口 | 39999/tcp | 已放行段内，无需改安全组（设计默认 7600，需安全组放行） |
-| 公网映射 | 39000-39998/tcp | 已放行；规则里的 `remote_port` 必须落在此区间 |
+| 控制端口 | 7600/tcp（或 39999） | TLS；需防火墙 + 安全组放行 |
+| 公网映射 | 39000-40000/tcp | 规则里的 `remote_port` 必须落在此区间 |
 | 管理台 | 127.0.0.1:7610 | 默认只监听本机，用 SSH 隧道访问 |
-| HTTP 域名映射 | 可配（默认关） | 80/443 被 frps 占用；切换期可先用 `:39080` |
+| HTTP 域名映射 | 可配（默认关） | 80/443 被占用时可先用 `:39080` |
 
-> 若之后彻底替换 frp：停掉 `frps` 后，可把 `http_addr` 设为 `:80`，并把控制端口改回 7000。
+> 如果云安全组只放行映射段（例如 39000-40000），可把 `control_addr` 设为 `:39999`、`port_range` 设为 `[39000, 39998]`，把 39999 留给控制端口。
 
 ## 1. 构建
 
@@ -32,8 +30,8 @@ make agent                  # -> dist/queqiao（本机 macOS）
 ## 2. 安装服务端
 
 ```bash
-scp dist/queqiaod-linux-amd64 root@39.107.230.175:/usr/local/bin/queqiaod
-ssh root@39.107.230.175 '
+scp dist/queqiaod-linux-amd64 root@YOUR_SERVER_IP:/usr/local/bin/queqiaod
+ssh root@YOUR_SERVER_IP '
   chmod +x /usr/local/bin/queqiaod
   mkdir -p /etc/queqiao /var/lib/queqiao
   chmod 700 /var/lib/queqiao
@@ -44,13 +42,13 @@ ssh root@39.107.230.175 '
 
 ```json
 {
-  "control_addr": ":39999",
+  "control_addr": ":7600",
   "web_addr": "127.0.0.1:7610",
   "data_dir": "/var/lib/queqiao",
-  "public_host": "39.107.230.175",
+  "public_host": "YOUR_SERVER_IP",
   "public_bind_addr": "0.0.0.0",
   "http_addr": "",
-  "port_range": [39000, 39998],
+  "port_range": [39000, 40000],
   "log_level": "info",
   "log_format": "text"
 }
@@ -69,8 +67,16 @@ systemctl status queqiaod --no-pager
 journalctl -u queqiaod -f
 ```
 
-防火墙：本次使用的 `39999/tcp` 与映射段 `39000-39998` 都已在 firewalld 放行（`firewall-cmd --list-ports` 可见 `39000-40000/tcp`），无需改动。
-若改用 7600 作为控制端口，需 `firewall-cmd --permanent --add-port=7600/tcp && firewall-cmd --reload`，并在阿里云控制台安全组放行 7600/tcp。
+防火墙 / 安全组：放行控制端口与映射段，例如
+
+```bash
+firewall-cmd --permanent --add-port=7600/tcp
+firewall-cmd --permanent --add-port=39000-40000/tcp
+firewall-cmd --reload
+firewall-cmd --list-ports
+```
+
+云厂商安全组也要做同样放行（控制端口 + 映射段）。如果控制端口改成了 39999，就把上面的 7600 换成 39999。
 
 启动后：
 
@@ -82,7 +88,7 @@ journalctl -u queqiaod -f
 无需开放 7610 到公网，SSH 隧道即可：
 
 ```bash
-ssh -L 7610:127.0.0.1:7610 root@39.107.230.175
+ssh -L 7610:127.0.0.1:7610 root@YOUR_SERVER_IP
 # 打开 http://127.0.0.1:7610
 ```
 
@@ -103,11 +109,11 @@ mkdir -p ~/.queqiao/bin
 install -m 0755 dist/queqiao ~/.queqiao/bin/queqiao
 
 # 首次运行：登记设备（会打印密钥码并停在"待审批"）
-~/.queqiao/bin/queqiao -s 39.107.230.175:39999
+~/.queqiao/bin/queqiao -s YOUR_SERVER_IP:39999
 
 # 在管理台「设备」页批准（密钥码应一致），Agent 会自动连上
 # 安装为开机自启（launchd），之后无需再手动运行：
-~/.queqiao/bin/queqiao install-service -s 39.107.230.175:39999
+~/.queqiao/bin/queqiao install-service -s YOUR_SERVER_IP:39999
 ~/.queqiao/bin/queqiao status
 tail -f ~/.queqiao/queqiao.log
 ```
@@ -123,7 +129,7 @@ tail -f ~/.queqiao/queqiao.log
 
 | 字段 | 示例 | 说明 |
 |------|------|------|
-| 设备 | macbook-pro | 已批准的设备 |
+| 设备 | my-laptop | 已批准的设备 |
 | 协议 | tcp | http 用于域名映射 |
 | 本地地址 | 127.0.0.1:8080 | Agent 所在主机上的服务 |
 | 公网端口 | 39001 | 必须在端口段内且未被占用（可先点「检测端口」） |
@@ -131,22 +137,22 @@ tail -f ~/.queqiao/queqiao.log
 保存后立即生效。验证：
 
 ```bash
-curl -v http://39.107.230.175:39001/
-# 或从本机：ssh -p 39022 root@39.107.230.175（若映射了 127.0.0.1:22 -> 39022）
+curl -v http://YOUR_SERVER_IP:39001/
+# 或从本机：ssh -p 39022 root@YOUR_SERVER_IP（若映射了 127.0.0.1:22 -> 39022）
 ```
 
 ## 6. 升级与回滚
 
 ```bash
 # 升级
-scp dist/queqiaod-linux-amd64 root@39.107.230.175:/usr/local/bin/queqiaod.new
-ssh root@39.107.230.175 'systemctl stop queqiaod && mv /usr/local/bin/queqiaod /usr/local/bin/queqiaod.bak && mv /usr/local/bin/queqiaod.new /usr/local/bin/queqiaod && systemctl start queqiaod'
+scp dist/queqiaod-linux-amd64 root@YOUR_SERVER_IP:/usr/local/bin/queqiaod.new
+ssh root@YOUR_SERVER_IP 'systemctl stop queqiaod && mv /usr/local/bin/queqiaod /usr/local/bin/queqiaod.bak && mv /usr/local/bin/queqiaod.new /usr/local/bin/queqiaod && systemctl start queqiaod'
 
 # 数据备份（设备/规则/审计/TLS 证书）
-ssh root@39.107.230.175 'tar czf /root/queqiao-data-$(date +%F).tar.gz -C /var/lib queqiao'
+ssh root@YOUR_SERVER_IP 'tar czf /root/queqiao-data-$(date +%F).tar.gz -C /var/lib queqiao'
 
 # 回滚
-ssh root@39.107.230.175 'systemctl stop queqiaod && mv /usr/local/bin/queqiaod.bak /usr/local/bin/queqiaod && systemctl start queqiaod'
+ssh root@YOUR_SERVER_IP 'systemctl stop queqiaod && mv /usr/local/bin/queqiaod.bak /usr/local/bin/queqiaod && systemctl start queqiaod'
 ```
 
 > 重装服务端会重新生成 TLS 证书，已连接过的 Agent 会报「证书指纹变化」。
@@ -164,44 +170,30 @@ ssh root@39.107.230.175 'systemctl stop queqiaod && mv /usr/local/bin/queqiaod.b
 | Agent 日志 "拒绝本地地址" | 映射到私网地址需要 Agent 加 `-allow-lan` |
 | 管理台 401 | 会话过期（默认 12h），重新登录 |
 
-## 8. 实际部署记录（2026-10-22，已更名「鹊桥 Queqiao」）
+## 8. 部署自检清单
 
-| 项 | 实际值 |
-|----|--------|
-| 服务端 | 39.107.230.175（Alibaba Cloud Linux 3，systemd） |
-| 服务端二进制 | `/usr/local/bin/queqiaod`（linux/amd64，版本 0.1.0） |
-| 服务端配置 | `/etc/queqiao/queqiaod.json`（control `:39999`，web `127.0.0.1:7610`，port_range 39000-39998） |
-| 服务 | `queqiaod.service`：enabled + active |
-| 服务端数据 | `/var/lib/queqiao`（state.json / audit.jsonl / tls/）；旧目录 `/var/lib/nrp` 保留作回滚 |
-| 控制端口 | 39999/tcp（公网可直接连通） |
-| 管理台 | `ssh -L 7610:127.0.0.1:7610 root@39.107.230.175` → http://127.0.0.1:7610 |
-| 客户端 | macOS LaunchAgent `io.queqiao.agent`（用户级，开机自启；plist 在 `~/Library/LaunchAgents/`） |
-| 客户端二进制 | `~/.queqiao/bin/queqiao` |
-| 客户端状态 | `~/.queqiao/{agent.json,identity.json}` |
-| 客户端日志 | `~/.queqiao/queqiao.log`（stderr：`~/.queqiao/queqiao.err.log`） |
-| 设备 | `macbook-pro` / 密钥码 `QIAO-QCDD-XXIJ-QKVA` / active / online |
-| 公网映射 | `local-demo`：`127.0.0.1:8080 → :39001`（当前生效，演示页） |
+| 检查项 | 期望 |
+|--------|------|
+| 服务状态 | `systemctl is-active queqiaod` 输出 `active` |
+| 端口监听 | `ss -lntp` 能看到控制端口（7600/39999）与 `127.0.0.1:7610` |
+| 管理台 | SSH 隧道打开 `http://127.0.0.1:7610` 能正常登录 |
+| 设备 | 管理台「设备」页显示客户端 `online` |
+| 映射 | 新建一条 TCP 映射后，公网 `curl http://YOUR_SERVER_IP:39001/` 返回本地服务响应 |
+| 日志 | `journalctl -u queqiaod -f` 无异常 |
 
-验证结果：`curl http://39.107.230.175:39001/` 返回 200（Internet → 服务器:39001 → TLS/yamux → 本机 8080），
-`launchctl print gui/$(id -u)/io.queqiao.agent` 为 running，管理台显示设备 online。
+生产使用提示：
 
-### 更名迁移（NRP → 鹊桥 Queqiao，2026-10-22）
-
-- 代码：Go module `nrp → queqiao`，二进制 `nrpd → queqiaod`、`nrp-agent → queqiao`，CSRF 头 `X-Queqiao-CSRF`。
-- 服务端：新 unit `queqiaod.service` + 新目录 `/etc/queqiao`、`/var/lib/queqiao`；数据从 `/var/lib/nrp` 完整复制（含 `tls/` 证书、`state.json` 设备/规则、`audit.jsonl`）。
-- 客户端：用户目录 `~/.nrp → ~/.queqiao`，**identity.json 原样保留**，设备无需重新审批；launchd `io.nrp.agent → io.queqiao.agent`，日志改到 `~/.queqiao/queqiao.log`。
-- 保留项：`machineid` 哈希域仍是 `nrp-machine-v1`（改名不改机器指纹，避免设备重新绑定）。
-- 回滚：旧二进制 `/usr/local/bin/nrpd`、旧配置 `/etc/nrp`、旧数据 `/var/lib/nrp`、客户端 `~/.nrp.bak` 都还在；`systemctl disable --now queqiaod && systemctl enable --now nrpd` 可临时回退。
-- 注意：Cookie 名改为 `queqiao_admin`，服务端重启后旧会话失效，管理台需要重新登录。
-
+- `/var/lib/queqiao` 里包含设备/规则/审计和 TLS 私钥，注意备份与权限（0700）。
+- 更换服务端证书会导致所有 Agent 报「证书指纹变化」，需要清理客户端 `trust_pins` 后重连。
+- 历史版本曾用名 **NRP**，二进制/服务名/目录都已统一为 **Queqiao**；旧部署的备份目录（`/var/lib/nrp`、`~/.nrp.bak`）可在确认稳定后删除。
 
 常用运维命令：
 
 ```bash
 # 服务端状态 / 日志
-ssh root@39.107.230.175 'systemctl status queqiaod --no-pager; journalctl -u queqiaod -f'
+ssh root@YOUR_SERVER_IP 'systemctl status queqiaod --no-pager; journalctl -u queqiaod -f'
 # 管理台（本机执行，保持隧道）
-ssh -L 7610:127.0.0.1:7610 root@39.107.230.175
+ssh -L 7610:127.0.0.1:7610 root@YOUR_SERVER_IP
 # 客户端状态 / 重启 / 日志
 launchctl print gui/$(id -u)/io.queqiao.agent | head -20
 launchctl kickstart -k gui/$(id -u)/io.queqiao.agent

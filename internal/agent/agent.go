@@ -21,12 +21,12 @@ import (
 
 	"github.com/hashicorp/yamux"
 
-	"queqiao/internal/agentstate"
-	"queqiao/internal/auth"
-	"queqiao/internal/machineid"
-	"queqiao/internal/protocol"
-	"queqiao/internal/tlsutil"
-	"queqiao/internal/version"
+	"github.com/liuhuo23/queqiao/internal/agentstate"
+	"github.com/liuhuo23/queqiao/internal/auth"
+	"github.com/liuhuo23/queqiao/internal/machineid"
+	"github.com/liuhuo23/queqiao/internal/protocol"
+	"github.com/liuhuo23/queqiao/internal/tlsutil"
+	"github.com/liuhuo23/queqiao/internal/version"
 )
 
 const (

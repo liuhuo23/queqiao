@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"queqiao/internal/passwd"
-	"queqiao/internal/protocol"
-	"queqiao/internal/store"
-	"queqiao/internal/version"
-	"queqiao/internal/web"
+	"github.com/liuhuo23/queqiao/internal/passwd"
+	"github.com/liuhuo23/queqiao/internal/protocol"
+	"github.com/liuhuo23/queqiao/internal/store"
+	"github.com/liuhuo23/queqiao/internal/version"
+	"github.com/liuhuo23/queqiao/internal/web"
 )
 
 // 编译期断言：Server 实现管理台所需的后端能力。

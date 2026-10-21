@@ -1,11 +1,11 @@
 {
-  "control_addr": ":39999",
+  "control_addr": ":7600",
   "web_addr": "127.0.0.1:7610",
   "data_dir": "/var/lib/queqiao",
-  "public_host": "39.107.230.175",
+  "public_host": "YOUR_SERVER_IP",
   "public_bind_addr": "0.0.0.0",
   "http_addr": "",
-  "port_range": [39000, 39998],
+  "port_range": [39000, 40000],
   "log_level": "info",
   "log_format": "text"
 }

@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"queqiao/internal/store"
+	"github.com/liuhuo23/queqiao/internal/store"
 )
 
 //go:embed static

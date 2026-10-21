@@ -11,12 +11,12 @@ import (
 	"strings"
 	"syscall"
 
-	"queqiao/internal/agent"
-	"queqiao/internal/agentstate"
-	"queqiao/internal/agentsvc"
-	"queqiao/internal/auth"
-	"queqiao/internal/logx"
-	"queqiao/internal/version"
+	"github.com/liuhuo23/queqiao/internal/agent"
+	"github.com/liuhuo23/queqiao/internal/agentstate"
+	"github.com/liuhuo23/queqiao/internal/agentsvc"
+	"github.com/liuhuo23/queqiao/internal/auth"
+	"github.com/liuhuo23/queqiao/internal/logx"
+	"github.com/liuhuo23/queqiao/internal/version"
 )
 
 var usageLines = []string{
@@ -101,7 +101,7 @@ func cmdRun(args []string) {
 	}
 	if a.ServerAddr() == "" {
 		fmt.Fprintln(os.Stderr, "首次运行需要提供服务端地址，例如：")
-		fmt.Fprintln(os.Stderr, "  queqiao -s 39.107.230.175:7600")
+		fmt.Fprintln(os.Stderr, "  queqiao -s YOUR_SERVER_IP:7600")
 		os.Exit(2)
 	}
 

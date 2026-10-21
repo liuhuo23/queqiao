@@ -1,4 +1,4 @@
-module queqiao
+module github.com/liuhuo23/queqiao
 
 go 1.22
 

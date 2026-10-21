@@ -12,8 +12,8 @@ import (
 
 	"github.com/hashicorp/yamux"
 
-	"queqiao/internal/protocol"
-	"queqiao/internal/store"
+	"github.com/liuhuo23/queqiao/internal/protocol"
+	"github.com/liuhuo23/queqiao/internal/store"
 )
 
 // session 表示一台在线设备的控制会话。

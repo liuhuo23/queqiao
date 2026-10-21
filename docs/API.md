@@ -54,7 +54,7 @@ Base URL：http://127.0.0.1:7610（默认仅本机；生产由 nginx/SSH 隧道�
     "uptime_sec": 3620,
     "control_addr": ":7600",
     "web_addr": "127.0.0.1:7610",
-    "public_host": "39.107.230.175",
+    "public_host": "YOUR_SERVER_IP",
     "port_range": [39000, 40000],
     "http_addr": ""
   },
@@ -145,7 +145,7 @@ Rule 对象：
   "created_at": "...", "updated_at": "...",
   "state": "active",               // active | device_offline | disabled | error
   "error": "",                     // state=error 时的原因（如端口被占用）
-  "public_addr": "39.107.230.175:39001",  // tcp=host:port；http=域名（不含 scheme）
+  "public_addr": "YOUR_SERVER_IP:39001",  // tcp=host:port；http=域名（不含 scheme）
   "bytes_in": 0,                   // 公网 -> 本地 的累计字节
   "bytes_out": 0,                  // 本地 -> 公网 的累计字节
   "conns_current": 0, "conns_total": 0
@@ -207,7 +207,7 @@ Rule 对象：
 ### GET /api/v1/settings
 ```json
 {
-  "public_host": "39.107.230.175",
+  "public_host": "YOUR_SERVER_IP",
   "port_range": [39000, 40000],
   "http_addr": "",
   "device_auto_approve": false,

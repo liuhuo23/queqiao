@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"queqiao/internal/store"
-	"queqiao/internal/version"
+	"github.com/liuhuo23/queqiao/internal/store"
+	"github.com/liuhuo23/queqiao/internal/version"
 )
 
 type sessionCtxKey struct{}

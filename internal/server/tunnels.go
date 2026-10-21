@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"queqiao/internal/store"
+	"github.com/liuhuo23/queqiao/internal/store"
 )
 
 const maxHTTPHead = 32 * 1024

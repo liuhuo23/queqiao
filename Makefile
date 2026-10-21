@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 VERSION ?= 0.1.0-dev
-LDFLAGS := -s -w -X queqiao/internal/version.Version=$(VERSION)
+LDFLAGS := -s -w -X github.com/liuhuo23/queqiao/internal/version.Version=$(VERSION)
 GOFLAGS := -trimpath
 
 .PHONY: all build server agent linux-server linux-agent darwin-agent windows-agent test vet tidy clean
@@ -15,7 +15,7 @@ server:
 agent:
 	CGO_ENABLED=0 go build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o dist/queqiao ./cmd/queqiao
 
-# 服务端目标平台：39.107.230.175 (linux/amd64)
+# 服务端目标平台：YOUR_SERVER_IP (linux/amd64)
 linux-server:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o dist/queqiaod-linux-amd64 ./cmd/queqiaod
 

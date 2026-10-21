@@ -2225,7 +2225,7 @@
       class: 'input',
       type: 'text',
       value: settings.public_host || '',
-      placeholder: '39.107.230.175 或 queqiao.example.com',
+      placeholder: 'YOUR_SERVER_IP 或 queqiao.example.com',
       autocomplete: 'off',
       spellcheck: 'false'
     });

@@ -10,11 +10,11 @@ import (
 	"log/slog"
 	"testing"
 
-	"queqiao/internal/auth"
-	"queqiao/internal/config"
-	"queqiao/internal/machineid"
-	"queqiao/internal/protocol"
-	"queqiao/internal/store"
+	"github.com/liuhuo23/queqiao/internal/auth"
+	"github.com/liuhuo23/queqiao/internal/config"
+	"github.com/liuhuo23/queqiao/internal/machineid"
+	"github.com/liuhuo23/queqiao/internal/protocol"
+	"github.com/liuhuo23/queqiao/internal/store"
 )
 
 // newTestServer 在随机端口起一个真实服务端（TLS + 临时目录存储）。

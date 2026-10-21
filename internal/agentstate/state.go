@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"queqiao/internal/auth"
+	"github.com/liuhuo23/queqiao/internal/auth"
 )
 
 const (

@@ -1,5 +1,10 @@
 # 鹊桥（Queqiao）— 免配置内网穿透（frp 的可管理替代）
 
+[![GitHub](https://img.shields.io/badge/GitHub-liuhuo23/queqiao-181717?logo=github&logoColor=white)](https://github.com/liuhuo23/queqiao)
+[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Wiki](https://img.shields.io/badge/Docs-Wiki-2563eb)](https://github.com/liuhuo23/queqiao/wiki)
+
 > 装好客户端就忘了它：**所有映射都在服务端网页上配置**。客户端首次运行本地生成密钥，
 > 在服务端登记并等待管理员审批，之后自动同步配置、断线重连、开机自启。
 
@@ -23,7 +28,7 @@
         浏览器 ──▶ 管理台 127.0.0.1:7610（SSH 隧道/nginx）
                         │ 配置：审批设备 / 映射规则
                         ▼
-公网用户 ──▶ :39001 ──▶ [ queqiaod 39.107.230.175 ] ◀── TLS 长连接 ── [ queqiao 你的主机 ]
+公网用户 ──▶ :39001 ──▶ [ queqiaod YOUR_SERVER_IP ] ◀── TLS 长连接 ── [ queqiao 你的主机 ]
                               ▲  控制流 + yamux 数据流                 │
                               └────────── 127.0.0.1:8080 ◀────────────┘
 ```
@@ -39,7 +44,7 @@
 
 ```bash
 make linux-server
-scp dist/queqiaod-linux-amd64 root@39.107.230.175:/usr/local/bin/queqiaod
+scp dist/queqiaod-linux-amd64 root@YOUR_SERVER_IP:/usr/local/bin/queqiaod
 # 见 docs/DEPLOY.md：配置 /etc/queqiao/queqiaod.json、systemd、firewalld、安全组
 ```
 
@@ -51,7 +56,7 @@ mkdir -p ~/.queqiao/bin
 install -m 0755 dist/queqiao ~/.queqiao/bin/queqiao
 
 # 首次运行：指定服务端地址（之后会记住）
-~/.queqiao/bin/queqiao -s 39.107.230.175:39999
+~/.queqiao/bin/queqiao -s YOUR_SERVER_IP:39999
 
 # 输出（示例）：
 #   ================= 设备待审批 =================
@@ -70,7 +75,7 @@ macOS 的 LaunchAgent plist 固定在 `~/Library/LaunchAgents/io.queqiao.agent.p
 管理台访问（无需开放端口）：
 
 ```bash
-ssh -L 7610:127.0.0.1:7610 root@39.107.230.175
+ssh -L 7610:127.0.0.1:7610 root@YOUR_SERVER_IP
 # 浏览器打开 http://127.0.0.1:7610，账号 admin，初始密码见 /var/lib/queqiao/initial-admin.txt
 ```
 
@@ -100,6 +105,21 @@ scripts/e2e.sh         端到端冒烟测试（本机全链路，无需 root/外
 docs/                  DESIGN / PROTOCOL / API / DEPLOY / AGENT_TASKS
 ```
 
+## 界面预览
+
+![鹊桥管理台登录页](docs/assets/login.png)
+
+## 使用文档（Wiki）
+
+完整安装、配置与常见问题都在 [Wiki](https://github.com/liuhuo23/queqiao/wiki)：
+
+- [快速开始](https://github.com/liuhuo23/queqiao/wiki/Quick-Start)
+- [服务端部署](https://github.com/liuhuo23/queqiao/wiki/Install-Server)
+- [客户端安装](https://github.com/liuhuo23/queqiao/wiki/Install-Client)
+- [管理台使用](https://github.com/liuhuo23/queqiao/wiki/Usage)
+- [配置参考](https://github.com/liuhuo23/queqiao/wiki/Configuration)
+- [常见问题](https://github.com/liuhuo23/queqiao/wiki/FAQ)
+
 ## 开发
 
 ```bash
@@ -122,6 +142,17 @@ make build              # 产出 dist/queqiaod、dist/queqiao
 - 管理台：HttpOnly + SameSite Cookie、CSRF 头、PBKDF2、登录限流、默认只监听 127.0.0.1。
 - 完整威胁模型见 [docs/DESIGN.md §8](docs/DESIGN.md)。
 
+## 关于本项目（AI 开发说明）
+
+本项目是在人工需求与验收下，由 AI 编程助手完成从设计到上线、再到开源的整个过程：
+
+| 项 | 内容 |
+|----|------|
+| 开发工具 | **DeepSeek Harness（DSH）**，启用 Agent Teams：Lead + Web UI + Reviewer 三个角色协作 |
+| 模型 | **deepseek-flash** |
+| 总耗时 | 从需求提出到开源发布约 **2 小时 30 分钟**（2026-10-21 23:53 起，含方案设计、编码、独立复审、服务端/客户端部署与开源整理） |
+| 验证方式 | `go build` / `go vet` / `go test` / `go test -race`、端到端脚本、真实公网隧道测试、独立 Reviewer 复审（发现并修复 2 个 P0 安全问题） |
+
 ## 状态与路线图
 
 - **M1（已完成）**：TLS 握手 + 密钥认证 + 机器指纹审批、TCP 映射、Web 管理台（登录/设备/映射/日志/设置）、端到端测试、systemd/launchd 安装。
@@ -130,3 +161,7 @@ make build              # 产出 dist/queqiaod、dist/queqiao
 - **M4**：SQLite 存储、UDP、集群。
 
 任务拆分与文件归属见 [docs/AGENT_TASKS.md](docs/AGENT_TASKS.md)。
+
+## License
+
+[MIT](LICENSE) © 2026 liuhuo

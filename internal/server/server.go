@@ -19,14 +19,14 @@ import (
 
 	"github.com/hashicorp/yamux"
 
-	"queqiao/internal/auth"
-	"queqiao/internal/config"
-	"queqiao/internal/passwd"
-	"queqiao/internal/protocol"
-	"queqiao/internal/store"
-	"queqiao/internal/tlsutil"
-	"queqiao/internal/version"
-	"queqiao/internal/web"
+	"github.com/liuhuo23/queqiao/internal/auth"
+	"github.com/liuhuo23/queqiao/internal/config"
+	"github.com/liuhuo23/queqiao/internal/passwd"
+	"github.com/liuhuo23/queqiao/internal/protocol"
+	"github.com/liuhuo23/queqiao/internal/store"
+	"github.com/liuhuo23/queqiao/internal/tlsutil"
+	"github.com/liuhuo23/queqiao/internal/version"
+	"github.com/liuhuo23/queqiao/internal/web"
 )
 
 const (

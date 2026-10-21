@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"queqiao/internal/web"
+	"github.com/liuhuo23/queqiao/internal/web"
 )
 
 // eventRing 是内存事件环形缓冲（Agent 事件 + 连接事件），供管理台展示。
