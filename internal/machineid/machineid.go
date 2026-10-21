@@ -13,6 +13,7 @@ import (
 	"sync"
 )
 
+// hashDomain 是历史哈希域常量：项目更名后仍保持原值，避免机器指纹变化导致设备重新绑定。
 const hashDomain = "nrp-machine-v1"
 
 // Info 是本机指纹信息。

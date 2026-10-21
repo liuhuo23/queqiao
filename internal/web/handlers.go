@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"nrp/internal/store"
-	"nrp/internal/version"
+	"queqiao/internal/store"
+	"queqiao/internal/version"
 )
 
 type sessionCtxKey struct{}

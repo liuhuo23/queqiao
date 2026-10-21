@@ -1,4 +1,4 @@
-module nrp
+module queqiao
 
 go 1.22
 

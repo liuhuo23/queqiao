@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"nrp/internal/passwd"
-	"nrp/internal/protocol"
-	"nrp/internal/store"
-	"nrp/internal/version"
-	"nrp/internal/web"
+	"queqiao/internal/passwd"
+	"queqiao/internal/protocol"
+	"queqiao/internal/store"
+	"queqiao/internal/version"
+	"queqiao/internal/web"
 )
 
 // 编译期断言：Server 实现管理台所需的后端能力。
@@ -492,7 +492,7 @@ func (s *Server) CheckPort(port int) (bool, string) {
 		return false, fmt.Sprintf("端口不在允许范围 %d-%d", settings.PortRange[0], settings.PortRange[1])
 	}
 	if port == portOf(s.cfg.ControlAddr) || port == portOf(s.cfg.WebAddr) || port == portOf(settings.HTTPAddr) {
-		return false, "端口被 NRP 自身占用"
+		return false, "端口被 鹊桥 自身占用"
 	}
 	if s.store.PortInUse(port, "") {
 		return false, "端口已被其他映射占用"
@@ -655,14 +655,14 @@ func (s *Server) Metrics() string {
 		}
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "# HELP nrp_devices_online 在线设备数\n# TYPE nrp_devices_online gauge\nnrp_devices_online %d\n", len(online))
-	fmt.Fprintf(&b, "# HELP nrp_devices_pending 待审批设备数\n# TYPE nrp_devices_pending gauge\nnrp_devices_pending %d\n", pending)
-	fmt.Fprintf(&b, "# HELP nrp_rules_active 生效中的映射数\n# TYPE nrp_rules_active gauge\nnrp_rules_active %d\n", active)
-	fmt.Fprintf(&b, "# HELP nrp_conns_current 当前隧道连接数\n# TYPE nrp_conns_current gauge\nnrp_conns_current %d\n", s.stats.connsCurrent.Load())
-	fmt.Fprintf(&b, "# HELP nrp_conns_total 累计隧道连接数\n# TYPE nrp_conns_total counter\nnrp_conns_total %d\n", s.stats.connsTotal.Load())
-	fmt.Fprintf(&b, "# HELP nrp_bytes_in_total 公网到本地累计字节\n# TYPE nrp_bytes_in_total counter\nnrp_bytes_in_total %d\n", s.stats.bytesIn.Load())
-	fmt.Fprintf(&b, "# HELP nrp_bytes_out_total 本地到公网累计字节\n# TYPE nrp_bytes_out_total counter\nnrp_bytes_out_total %d\n", s.stats.bytesOut.Load())
-	fmt.Fprintf(&b, "# HELP nrp_auth_failures_total 认证失败次数\n# TYPE nrp_auth_failures_total counter\nnrp_auth_failures_total %d\n", s.stats.authFailures.Load())
+	fmt.Fprintf(&b, "# HELP queqiao_devices_online 在线设备数\n# TYPE queqiao_devices_online gauge\nqueqiao_devices_online %d\n", len(online))
+	fmt.Fprintf(&b, "# HELP queqiao_devices_pending 待审批设备数\n# TYPE queqiao_devices_pending gauge\nqueqiao_devices_pending %d\n", pending)
+	fmt.Fprintf(&b, "# HELP queqiao_rules_active 生效中的映射数\n# TYPE queqiao_rules_active gauge\nqueqiao_rules_active %d\n", active)
+	fmt.Fprintf(&b, "# HELP queqiao_conns_current 当前隧道连接数\n# TYPE queqiao_conns_current gauge\nqueqiao_conns_current %d\n", s.stats.connsCurrent.Load())
+	fmt.Fprintf(&b, "# HELP queqiao_conns_total 累计隧道连接数\n# TYPE queqiao_conns_total counter\nqueqiao_conns_total %d\n", s.stats.connsTotal.Load())
+	fmt.Fprintf(&b, "# HELP queqiao_bytes_in_total 公网到本地累计字节\n# TYPE queqiao_bytes_in_total counter\nqueqiao_bytes_in_total %d\n", s.stats.bytesIn.Load())
+	fmt.Fprintf(&b, "# HELP queqiao_bytes_out_total 本地到公网累计字节\n# TYPE queqiao_bytes_out_total counter\nqueqiao_bytes_out_total %d\n", s.stats.bytesOut.Load())
+	fmt.Fprintf(&b, "# HELP queqiao_auth_failures_total 认证失败次数\n# TYPE queqiao_auth_failures_total counter\nqueqiao_auth_failures_total %d\n", s.stats.authFailures.Load())
 	return b.String()
 }
 

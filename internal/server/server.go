@@ -19,14 +19,14 @@ import (
 
 	"github.com/hashicorp/yamux"
 
-	"nrp/internal/auth"
-	"nrp/internal/config"
-	"nrp/internal/passwd"
-	"nrp/internal/protocol"
-	"nrp/internal/store"
-	"nrp/internal/tlsutil"
-	"nrp/internal/version"
-	"nrp/internal/web"
+	"queqiao/internal/auth"
+	"queqiao/internal/config"
+	"queqiao/internal/passwd"
+	"queqiao/internal/protocol"
+	"queqiao/internal/store"
+	"queqiao/internal/tlsutil"
+	"queqiao/internal/version"
+	"queqiao/internal/web"
 )
 
 const (
@@ -39,7 +39,7 @@ const (
 	maxPendingDevices = 20
 )
 
-// Server 是 NRP 服务端：控制面（TLS+握手+yamux）、数据面（公网监听）、管理台。
+// Server 是 鹊桥 服务端：控制面（TLS+握手+yamux）、数据面（公网监听）、管理台。
 type Server struct {
 	cfg       config.Server
 	store     *store.Store
@@ -115,7 +115,7 @@ func (s *Server) createInitialAdmin() error {
 		return err
 	}
 	path := filepath.Join(s.cfg.DataDir, "initial-admin.txt")
-	content := fmt.Sprintf("NRP 初始管理员账号\n\n用户名: admin\n密码:   %s\n\n请登录后立即修改密码。\n", pw)
+	content := fmt.Sprintf("鹊桥 初始管理员账号\n\n用户名: admin\n密码:   %s\n\n请登录后立即修改密码。\n", pw)
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		s.log.Warn("已创建初始管理员（写入密码文件失败，密码见本条日志）",
 			"username", "admin", "password", pw)
@@ -169,7 +169,7 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 	}()
 
-	s.log.Info("NRP 服务端已启动",
+	s.log.Info("鹊桥 服务端已启动",
 		"version", version.String(),
 		"control", s.controlAddr,
 		"web", s.webAddr,
@@ -204,7 +204,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	}
 	s.tunnels.closeAll()
 	_ = s.store.Close()
-	s.log.Info("NRP 服务端已停止")
+	s.log.Info("鹊桥 服务端已停止")
 	return nil
 }
 
@@ -408,6 +408,8 @@ func (s *Server) handleConn(ctx context.Context, conn net.Conn) {
 			d.MachineID = machineID
 		}
 		d.FingerprintConflict = false
+		// 密钥码前缀可能随版本变化，认证成功后同步成当前格式
+		d.KeyCode = auth.KeyCode(pub)
 		return nil
 	})
 

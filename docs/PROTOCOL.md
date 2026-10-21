@@ -1,4 +1,4 @@
-# NRP 线路协议 v1
+# 鹊桥 线路协议 v1
 
 服务端与 Agent 之间的全部通信都在**同一条 TLS 连接**上完成：
 
@@ -36,7 +36,7 @@ Agent                                          Server
 - challenge.nonce：32 字节随机数，base64；10 秒内有效，一次性。
 - proof.signature：Ed25519 签名，base64；签名内容（字节拼接）：
   ```text
-  "nrp-auth-v1" ‖ 0x00 ‖ nonce ‖ 0x00 ‖ ASCII(machine_id)
+  "queqiao-auth-v1" ‖ 0x00 ‖ nonce ‖ 0x00 ‖ ASCII(machine_id)
   ```
 
 ### 1.2 服务端判定逻辑

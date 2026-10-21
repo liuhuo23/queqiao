@@ -13,7 +13,7 @@ import (
 )
 
 // proofDomain 是签名域分隔符，防止跨协议重放。
-const proofDomain = "nrp-auth-v1"
+const proofDomain = "queqiao-auth-v1"
 
 var (
 	// ErrBadPublicKey 表示公钥格式非法。
@@ -59,13 +59,13 @@ func ParsePrivateKey(s string) (ed25519.PrivateKey, error) {
 	return ed25519.PrivateKey(raw), nil
 }
 
-// KeyCode 生成给人看的短密钥码，例如 NRP-7K3F-9Q2M-8XZP。
+// KeyCode 生成给人看的短密钥码，例如 QIAO-7K3F-9Q2M-8XZP。
 // 它只是公钥哈希的缩写，不参与认证。
 func KeyCode(pub ed25519.PublicKey) string {
 	h := sha256.Sum256(pub)
 	enc := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(h[:10])
 	enc = enc[:12]
-	return "NRP-" + enc[0:4] + "-" + enc[4:8] + "-" + enc[8:12]
+	return "QIAO-" + enc[0:4] + "-" + enc[4:8] + "-" + enc[8:12]
 }
 
 // KeyFingerprint 返回完整公钥指纹（sha256 hex），用于日志排查。

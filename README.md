@@ -1,16 +1,17 @@
-# NRP — 免配置内网穿透（frp 的可管理替代）
+# 鹊桥（Queqiao）— 免配置内网穿透（frp 的可管理替代）
 
 > 装好客户端就忘了它：**所有映射都在服务端网页上配置**。客户端首次运行本地生成密钥，
 > 在服务端登记并等待管理员审批，之后自动同步配置、断线重连、开机自启。
 
+- 中文名：**鹊桥**；英文/命令名：**Queqiao**
 - 语言：Go（单静态二进制，唯一第三方依赖 yamux）
-- 服务端：`nrpd`（控制面 TLS + 公网端口映射 + Web 管理台）
-- 客户端：`nrp-agent`（macOS / Linux / Windows，零配置文件）
+- 服务端：`queqiaod`（控制面 TLS + 公网端口映射 + Web 管理台）
+- 客户端：`queqiao`（macOS / Linux / Windows，零配置文件）
 - 设计文档：[docs/DESIGN.md](docs/DESIGN.md) · [线路协议](docs/PROTOCOL.md) · [管理 API](docs/API.md) · [部署](docs/DEPLOY.md)
 
 ## 它解决什么问题
 
-| frp | NRP |
+| frp | 鹊桥 |
 |-----|-----|
 | 每台机器写 `frpc.toml`，改映射要改文件 + 重启 | 客户端只跑一个命令，映射在网页上改，秒级下发 |
 | 预共享 token，泄露即可接入 | 客户端生成 Ed25519 密钥，首次连接绑定机器指纹 + 人工审批 |
@@ -22,7 +23,7 @@
         浏览器 ──▶ 管理台 127.0.0.1:7610（SSH 隧道/nginx）
                         │ 配置：审批设备 / 映射规则
                         ▼
-公网用户 ──▶ :39001 ──▶ [ nrpd 39.107.230.175 ] ◀── TLS 长连接 ── [ nrp-agent 你的主机 ]
+公网用户 ──▶ :39001 ──▶ [ queqiaod 39.107.230.175 ] ◀── TLS 长连接 ── [ queqiao 你的主机 ]
                               ▲  控制流 + yamux 数据流                 │
                               └────────── 127.0.0.1:8080 ◀────────────┘
 ```
@@ -38,47 +39,47 @@
 
 ```bash
 make linux-server
-scp dist/nrpd-linux-amd64 root@39.107.230.175:/usr/local/bin/nrpd
-# 见 docs/DEPLOY.md：配置 /etc/nrp/nrpd.json、systemd、firewalld、安全组
+scp dist/queqiaod-linux-amd64 root@39.107.230.175:/usr/local/bin/queqiaod
+# 见 docs/DEPLOY.md：配置 /etc/queqiao/queqiaod.json、systemd、firewalld、安全组
 ```
 
 ### 客户端（本机 macOS）
 
 ```bash
 make agent
-mkdir -p ~/.nrp/bin
-install -m 0755 dist/nrp-agent ~/.nrp/bin/nrp-agent
+mkdir -p ~/.queqiao/bin
+install -m 0755 dist/queqiao ~/.queqiao/bin/queqiao
 
 # 首次运行：指定服务端地址（之后会记住）
-~/.nrp/bin/nrp-agent -s 39.107.230.175:39999
+~/.queqiao/bin/queqiao -s 39.107.230.175:39999
 
 # 输出（示例）：
 #   ================= 设备待审批 =================
-#     密钥:   NRP-7K3F-9Q2M-8XZP
+#     密钥:   QIAO-7K3F-9Q2M-8XZP
 #     主机:   macbook-pro
 #   → 在管理台批准后自动连上
 
 # 批准后安装为开机自启（macOS launchd / Linux systemd）
-~/.nrp/bin/nrp-agent install-service
+~/.queqiao/bin/queqiao install-service
 ```
 
-客户端数据统一在 `~/.nrp`：`identity.json`（身份密钥）、`agent.json`（服务端地址与证书指纹）、
-`nrp-agent.log` / `nrp-agent.err.log`（日志）、`bin/nrp-agent`（二进制）。
-macOS 的 LaunchAgent plist 固定在 `~/Library/LaunchAgents/io.nrp.agent.plist`（launchd 要求）。
+客户端数据统一在 `~/.queqiao`：`identity.json`（身份密钥）、`agent.json`（服务端地址与证书指纹）、
+`queqiao.log` / `queqiao.err.log`（日志）、`bin/queqiao`（二进制）。
+macOS 的 LaunchAgent plist 固定在 `~/Library/LaunchAgents/io.queqiao.agent.plist`（launchd 要求）。
 
 管理台访问（无需开放端口）：
 
 ```bash
 ssh -L 7610:127.0.0.1:7610 root@39.107.230.175
-# 浏览器打开 http://127.0.0.1:7610，账号 admin，初始密码见 /var/lib/nrp/initial-admin.txt
+# 浏览器打开 http://127.0.0.1:7610，账号 admin，初始密码见 /var/lib/queqiao/initial-admin.txt
 ```
 
 ## 目录结构
 
 ```text
 cmd/
-  nrpd/                服务端入口（flag/config/systemd）
-  nrp-agent/           客户端入口（run/status/identity/install-service）
+  queqiaod/                服务端入口（flag/config/systemd）
+  queqiao/           客户端入口（run/status/identity/install-service）
 internal/
   protocol/            线路协议帧与消息（握手、控制流、数据流）
   auth/                Ed25519 密钥、密钥码、挑战-应答
@@ -106,7 +107,7 @@ go build ./...          # 需要 Go 1.22+
 go vet ./...
 go test ./...           # 单元测试
 bash scripts/e2e.sh     # 起服务端 + Agent + 批审批 + 建映射 + 真实 HTTP 请求
-make build              # 产出 dist/nrpd、dist/nrp-agent
+make build              # 产出 dist/queqiaod、dist/queqiao
 ```
 
 > 在受限环境（如本仓库的沙箱）中构建时，把 GOMODCACHE/GOCACHE 指到工作目录内即可，例如：

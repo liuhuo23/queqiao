@@ -23,7 +23,7 @@ func TestDeviceCRUDAndPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dev, err := s.AddDevice(&Device{PublicKey: "pk1", KeyCode: "NRP-AAAA-BBBB-CCCC", Status: StatusPending, MachineID: "mid1", Hostname: "h1"})
+	dev, err := s.AddDevice(&Device{PublicKey: "pk1", KeyCode: "QIAO-AAAA-BBBB-CCCC", Status: StatusPending, MachineID: "mid1", Hostname: "h1"})
 	if err != nil {
 		t.Fatal(err)
 	}

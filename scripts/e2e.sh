@@ -27,18 +27,18 @@ cleanup() {
 }
 trap cleanup EXIT
 
-fail() { echo "FAIL: $*"; echo "--- nrpd.log ---"; tail -50 "$WORK/nrpd.log" 2>/dev/null; echo "--- agent.log ---"; tail -50 "$WORK/agent.log" 2>/dev/null; exit 1; }
+fail() { echo "FAIL: $*"; echo "--- queqiaod.log ---"; tail -50 "$WORK/queqiaod.log" 2>/dev/null; echo "--- agent.log ---"; tail -50 "$WORK/agent.log" 2>/dev/null; exit 1; }
 
 BUILD_EXTRA=""
-if [ "${NRP_RACE:-}" = "1" ]; then
+if [ "${鹊桥_RACE:-}" = "1" ]; then
   BUILD_EXTRA="-race"
   echo "==> 构建（race detector 已开启）"
 fi
 
 echo "==> 构建"
-(cd "$ROOT" && go build $BUILD_EXTRA -o "$WORK/nrpd" ./cmd/nrpd && go build $BUILD_EXTRA -o "$WORK/nrp-agent" ./cmd/nrp-agent) || fail "构建失败"
+(cd "$ROOT" && go build $BUILD_EXTRA -o "$WORK/queqiaod" ./cmd/queqiaod && go build $BUILD_EXTRA -o "$WORK/queqiao" ./cmd/queqiao) || fail "构建失败"
 
-cat > "$WORK/nrpd.json" <<JSON
+cat > "$WORK/queqiaod.json" <<JSON
 {
   "control_addr": "$CONTROL",
   "web_addr": "$WEB",
@@ -52,7 +52,7 @@ cat > "$WORK/nrpd.json" <<JSON
 JSON
 
 echo "==> 启动服务端"
-"$WORK/nrpd" -config "$WORK/nrpd.json" > "$WORK/nrpd.log" 2>&1 &
+"$WORK/queqiaod" -config "$WORK/queqiaod.json" > "$WORK/queqiaod.log" 2>&1 &
 PIDS="$PIDS $!"
 
 for _ in $(seq 1 100); do
@@ -62,7 +62,7 @@ done
 curl -sf "http://$WEB/api/v1/health" > /dev/null || fail "服务端未启动"
 
 echo "==> 启动 Agent（首次连接应处于待审批）"
-"$WORK/nrp-agent" -s "$CONTROL" -state-dir "$WORK/agent" -log-level debug > "$WORK/agent.log" 2>&1 &
+"$WORK/queqiao" -s "$CONTROL" -state-dir "$WORK/agent" -log-level debug > "$WORK/agent.log" 2>&1 &
 PIDS="$PIDS $!"
 
 PW=$(sed -n 's/^密码:   //p' "$WORK/data/initial-admin.txt")
@@ -94,7 +94,7 @@ done
 [ -n "$DEV_ID" ] || fail "设备未注册"
 
 curl -sf -b "$WORK/cookies.txt" -X POST "http://$WEB/api/v1/devices/$DEV_ID/approve" \
-  -H "X-NRP-CSRF: $CSRF" -H 'Content-Type: application/json' -d '{"name":"e2e-host"}' \
+  -H "X-Queqiao-CSRF: $CSRF" -H 'Content-Type: application/json' -d '{"name":"e2e-host"}' \
   > "$WORK/approve.json" || fail "批准设备失败"
 python3 -c 'import sys,json;d=json.load(open(sys.argv[1]));assert d["status"]=="active",d' "$WORK/approve.json" || fail "设备未变为 active"
 
@@ -109,11 +109,11 @@ done
 
 echo "==> 创建映射 $LOCAL_HTTP -> :$REMOTE_PORT"
 RULE_JSON=$(curl -sf -b "$WORK/cookies.txt" -X POST "http://$WEB/api/v1/rules" \
-  -H "X-NRP-CSRF: $CSRF" -H 'Content-Type: application/json' \
+  -H "X-Queqiao-CSRF: $CSRF" -H 'Content-Type: application/json' \
   -d "{\"device_id\":\"$DEV_ID\",\"name\":\"e2e\",\"proto\":\"tcp\",\"local_addr\":\"$LOCAL_HTTP\",\"remote_port\":$REMOTE_PORT,\"enabled\":true}") || fail "创建映射失败"
 RULE_ID=$(echo "$RULE_JSON" | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])') || fail "解析映射失败"
 
-echo "hello-nrp-e2e" > "$WORK/www/hello.txt"
+echo "hello-queqiao-e2e" > "$WORK/www/hello.txt"
 LOCAL_HOST="${LOCAL_HTTP%:*}"
 LOCAL_PORT="${LOCAL_HTTP##*:}"
 ( cd "$WORK/www" && exec python3 -m http.server "$LOCAL_PORT" --bind "$LOCAL_HOST" ) > "$WORK/http.log" 2>&1 &
@@ -123,14 +123,14 @@ echo "==> 通过公网端口访问本地服务"
 BODY=""
 for _ in $(seq 1 100); do
   BODY=$(curl -s --max-time 3 "http://127.0.0.1:$REMOTE_PORT/hello.txt" || true)
-  [ "$BODY" = "hello-nrp-e2e" ] && break
+  [ "$BODY" = "hello-queqiao-e2e" ] && break
   sleep 0.2
 done
-[ "$BODY" = "hello-nrp-e2e" ] || fail "隧道请求失败，响应: '$BODY'"
+[ "$BODY" = "hello-queqiao-e2e" ] || fail "隧道请求失败，响应: '$BODY'"
 
 echo "==> 校验配置下发：禁用映射后公网端口应关闭"
 curl -sf -b "$WORK/cookies.txt" -X PATCH "http://$WEB/api/v1/rules/$RULE_ID" \
-  -H "X-NRP-CSRF: $CSRF" -H 'Content-Type: application/json' -d '{"enabled":false}' > /dev/null || fail "禁用映射失败"
+  -H "X-Queqiao-CSRF: $CSRF" -H 'Content-Type: application/json' -d '{"enabled":false}' > /dev/null || fail "禁用映射失败"
 sleep 0.5
 if curl -s --max-time 2 "http://127.0.0.1:$REMOTE_PORT/hello.txt" > /dev/null 2>&1; then
   fail "禁用后端口仍然可访问"
@@ -138,7 +138,7 @@ fi
 
 echo "==> 校验封禁设备"
 curl -sf -b "$WORK/cookies.txt" -X POST "http://$WEB/api/v1/devices/$DEV_ID/block" \
-  -H "X-NRP-CSRF: $CSRF" -H 'Content-Type: application/json' -d '{"blocked":true}' > /dev/null || fail "封禁失败"
+  -H "X-Queqiao-CSRF: $CSRF" -H 'Content-Type: application/json' -d '{"blocked":true}' > /dev/null || fail "封禁失败"
 sleep 0.5
 for _ in $(seq 1 50); do
   ONLINE=$(curl -s -b "$WORK/cookies.txt" "http://$WEB/api/v1/devices" | python3 -c 'import sys,json;d=json.load(sys.stdin)["devices"][0];print("yes" if d["online"] else "no")')

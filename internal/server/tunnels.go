@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"nrp/internal/store"
+	"queqiao/internal/store"
 )
 
 const maxHTTPHead = 32 * 1024

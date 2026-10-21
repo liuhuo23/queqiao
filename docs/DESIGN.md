@@ -1,4 +1,4 @@
-# NRP 设计方案（No-config Reverse Proxy）
+# 鹊桥（Queqiao）设计方案（No-config Reverse Proxy）
 
 > 一句话：**服务端集中配置的内网穿透**。客户端 Agent 跑在你自己的主机上，安装后自动生成身份密钥，
 > 首次连接在服务端登记为"待审批设备"，管理员在网页审批并配置端口映射；之后 Agent 无配置文件、
@@ -7,7 +7,7 @@
 - 代码语言：Go（单静态二进制，除 yamux 外零第三方依赖）
 - 服务端：root@39.107.230.175（Alibaba Cloud Linux 3 / x86_64 / systemd 239）
 - 客户端：本机（macOS arm64），同时支持 Linux / Windows
-- Go module：nrp
+- Go module：queqiao
 
 ---
 
@@ -44,7 +44,7 @@
 | 存储 | 单文件 JSON（原子写）+ 追加式审计 JSONL + 互斥锁 | 单实例、设备/规则规模远小于 10^4；免 cgo/SQLite；store 抽象为接口，后续可换 SQLite |
 | 密码哈希 | 自实现 PBKDF2-HMAC-SHA256（21 万轮）+ 16B 盐 + 常量时间比较 | 不引入 x/crypto，格式自描述、参数可调 |
 | Web 管理台 | go:embed 内嵌原生 HTML/CSS/JS，无 node/打包步骤 | 单二进制交付；低频后台无需前端框架 |
-| 管理面鉴权 | 内存 Session + HttpOnly/SameSite=Lax Cookie + **CSRF 双提交**（X-NRP-CSRF 头） | 后台全是状态变更接口，必须防 CSRF |
+| 管理面鉴权 | 内存 Session + HttpOnly/SameSite=Lax Cookie + **CSRF 双提交**（X-Queqiao-CSRF 头） | 后台全是状态变更接口，必须防 CSRF |
 | 端口映射 | 服务端按规则**动态监听**公网端口；设备离线即关闭监听 | 冲突在网页立刻可见；离线时不会"连上但一直挂住" |
 | 配置下发 | 规则变更 → 生成设备配置快照（revision）→ 推送 → Agent ACK → 重绑定监听 | 幂等、可断线恢复：重连后直接下发最新快照 |
 | 公网端口段 | 39000-39998（安全组放行段为 39000-40000，39999 留给控制端口） | 服务器现状：frps 占 7000/80/443/7500，nps 占 8024/2080/2443/43039，宝塔占 38888 |
@@ -56,7 +56,7 @@
 ```text
                          Internet
         ┌────────────────────────────────────────────────┐
-        │  39.107.230.175 (nrpd)                         │
+        │  39.107.230.175 (queqiaod)                         │
         │   :39999  control (TLS，客户端长连接)            │
         │   :39000-39998  TCP 映射监听（按规则动态创建）     │
         │   :可配  HTTP 域名映射监听（默认关）              │
@@ -65,7 +65,7 @@
                 │ TLS + yamux               │ 公网用户访问 :39001
                 │ 控制流 / 数据流             │
    ┌────────────┴────────────┐    ┌──────────┴─────────┐
-   │ nrp-agent（你的主机）     │    │ 浏览器 / ssh / curl │
+   │ queqiao（你的主机）     │    │ 浏览器 / ssh / curl │
    │  · 身份密钥 + 机器指纹    │    └────────────────────┘
    │  · 自动重连 + 配置同步    │
    │  · 数据流 → dial 本地服务 │
@@ -78,7 +78,7 @@
 **数据面时序（TCP 映射）**
 
 ```text
-公网用户 ──TCP──▶ nrpd:39001 ──OpenStream──▶ yamux ──▶ agent
+公网用户 ──TCP──▶ queqiaod:39001 ──OpenStream──▶ yamux ──▶ agent
                                                    │ 首部 {rule_id, remote_addr}
                                                    ├─ dial 127.0.0.1:8080
                                                    └─ 回 0x00 后双向 io.Copy
@@ -88,7 +88,7 @@
 **控制面时序（首次连接）**
 
 ```text
-agent                                   nrpd
+agent                                   queqiaod
   │── TLS（TOFU pin）─────────────────────▶│
   │── hello{pubkey, machine_id, os...} ──▶│  ← 公钥未知：创建 pending 设备
   │◀──────── challenge{nonce} ────────────│
@@ -110,14 +110,16 @@ agent                                   nrpd
 
 ### 4.1 客户端密钥
 
-- Agent 首次运行在状态目录 **`~/.nrp`**（所有平台统一使用当前用户主目录下的 `.nrp`）生成 **Ed25519 密钥对**，私钥文件 0600。
+- Agent 首次运行在状态目录 **`~/.queqiao`**（所有平台统一使用当前用户主目录下的 `.queqiao`）生成 **Ed25519 密钥对**，私钥文件 0600。
 - 服务端只保存**公钥**（base64）。
-- 人类可读"密钥码"：NRP- + base32(SHA-256(pubkey)) 的前 12 字符分 4 组（如 NRP-7K3F-9Q2M-8XZP）。用于审批时肉眼核对，**不参与认证**。
+- 人类可读"密钥码"：鹊桥- + base32(SHA-256(pubkey)) 的前 12 字符分 4 组（如 QIAO-7K3F-9Q2M-8XZP）。用于审批时肉眼核对，**不参与认证**。
 - 私钥丢失 = 新设备（需重新审批）；管理员可删除旧记录。
 
 ### 4.2 机器指纹（首次连接登记）
 
 machine_id = SHA-256("nrp-machine-v1" ‖ id)，id = 平台机器码；平台机器码缺失时回落到排序后的物理网卡 MAC
+
+> 注：`nrp-machine-v1` 是历史哈希域常量，项目更名「鹊桥 Queqiao」时特意保留，保证机器指纹不变、设备无需重新审批。
 
 - Linux：/etc/machine-id；macOS：ioreg -rd1 -c IOPlatformExpertDevice 的 IOPlatformUUID；Windows：MachineGuid
 - 平台机器码稳定、不受 VPN/网卡变化影响，优先使用；只有拿不到时才用 MAC 兜底
@@ -212,7 +214,7 @@ Audit   : at, actor, action, target, detail, ip（append-only JSONL）
 | 重放认证包 | 每次连接新 32B nonce，签名绑定 nonce，10s 有效 |
 | 中间人 | TLS + 客户端 TOFU 证书指纹固定；生产可配 CA 校验 |
 | 服务端被入侵后横向打内网 | Agent 默认只 dial loopback；-allow-lan 显式开启 |
-| 管理台 CSRF/XSS | SameSite=Lax + HttpOnly；非 GET 需 X-NRP-CSRF；输出 textContent；CSP |
+| 管理台 CSRF/XSS | SameSite=Lax + HttpOnly；非 GET 需 X-Queqiao-CSRF；输出 textContent；CSP |
 | 管理台撞库 | PBKDF2 21 万轮 + 登录限流 + 失败审计 |
 | 存储泄露 | 只存公钥/密码哈希/机器指纹哈希 |
 | 端口滥用 | 端口段限制 + 每设备规则数上限 + 并发上限（每规则 256、每 IP 64，超限直接拒绝） |
@@ -249,15 +251,15 @@ Audit   : at, actor, action, target, detail, ip（append-only JSONL）
 部署物：
 
 ```text
-/usr/local/bin/nrpd
-/etc/nrp/nrpd.json
-/var/lib/nrp/            # 配置 JSON、TLS 自签证书、审计日志
-/etc/systemd/system/nrpd.service
+/usr/local/bin/queqiaod
+/etc/queqiao/queqiaod.json
+/var/lib/queqiao/            # 配置 JSON、TLS 自签证书、审计日志
+/etc/systemd/system/queqiaod.service
 ```
 
 ```bash
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o dist/nrpd ./cmd/nrpd
-go build -o dist/nrp-agent ./cmd/nrp-agent
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o dist/queqiaod ./cmd/queqiaod
+go build -o dist/queqiao ./cmd/queqiao
 ```
 
 详见 docs/DEPLOY.md。
@@ -266,7 +268,7 @@ go build -o dist/nrp-agent ./cmd/nrp-agent
 
 ## 12. 与 frp 的对比
 
-| 维度 | frp | NRP |
+| 维度 | frp | 鹊桥 |
 |------|-----|-----|
 | 客户端配置 | frpc.toml，每条代理都要写，改配置要重启 | 无配置文件；服务端网页改，秒级下发 |
 | 身份 | 预共享 token | 客户端生成 Ed25519 密钥 + 机器指纹绑定 + 审批 |

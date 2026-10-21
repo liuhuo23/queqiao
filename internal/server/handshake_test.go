@@ -10,11 +10,11 @@ import (
 	"log/slog"
 	"testing"
 
-	"nrp/internal/auth"
-	"nrp/internal/config"
-	"nrp/internal/machineid"
-	"nrp/internal/protocol"
-	"nrp/internal/store"
+	"queqiao/internal/auth"
+	"queqiao/internal/config"
+	"queqiao/internal/machineid"
+	"queqiao/internal/protocol"
+	"queqiao/internal/store"
 )
 
 // newTestServer 在随机端口起一个真实服务端（TLS + 临时目录存储）。
@@ -50,7 +50,7 @@ func doHandshake(t *testing.T, addr, publicKey string, priv ed25519.PrivateKey) 
 	t.Helper()
 	conn, err := tls.Dial("tcp", addr, &tls.Config{
 		InsecureSkipVerify: true,
-		NextProtos:         []string{"nrp/1"},
+		NextProtos:         []string{"queqiao/1"},
 	})
 	if err != nil {
 		t.Fatal(err)

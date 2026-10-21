@@ -1,4 +1,4 @@
-// Package protocol 定义 NRP 服务端与 Agent 之间的线路协议（v1）。
+// Package protocol 定义 鹊桥 服务端与 Agent 之间的线路协议（v1）。
 //
 // 传输层：一条 TLS 连接。
 // 握手：4 字节大端长度 + JSON 帧，顺序 hello -> challenge -> proof -> ok/pending/reject。

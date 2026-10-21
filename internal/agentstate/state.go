@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"nrp/internal/auth"
+	"queqiao/internal/auth"
 )
 
 const (
@@ -34,13 +34,13 @@ type Identity struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-// DefaultDir 返回默认状态目录：所有平台统一为用户主目录下的 .nrp。
+// DefaultDir 返回默认状态目录：所有平台统一为用户主目录下的 .queqiao。
 func DefaultDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".nrp"), nil
+	return filepath.Join(home, ".queqiao"), nil
 }
 
 // Load 读取状态（不存在时返回空状态）。

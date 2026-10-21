@@ -1,4 +1,4 @@
-// nrp-agent 是 NRP 客户端：零配置接入服务端，按服务端下发的映射转发流量。
+// queqiao 是 鹊桥 客户端：零配置接入服务端，按服务端下发的映射转发流量。
 package main
 
 import (
@@ -11,25 +11,25 @@ import (
 	"strings"
 	"syscall"
 
-	"nrp/internal/agent"
-	"nrp/internal/agentstate"
-	"nrp/internal/agentsvc"
-	"nrp/internal/auth"
-	"nrp/internal/logx"
-	"nrp/internal/version"
+	"queqiao/internal/agent"
+	"queqiao/internal/agentstate"
+	"queqiao/internal/agentsvc"
+	"queqiao/internal/auth"
+	"queqiao/internal/logx"
+	"queqiao/internal/version"
 )
 
 var usageLines = []string{
-	"NRP Agent —— 免配置内网穿透客户端",
+	"鹊桥 Agent —— 免配置内网穿透客户端",
 	"",
 	"用法:",
-	"  nrp-agent [run] [options]             启动并持续连接（默认命令）",
-	"  nrp-agent status                      查看本地状态",
-	"  nrp-agent identity                    显示本机密钥码与公钥",
-	"  nrp-agent reset-identity [-yes]       重置本机身份（会变成新设备，需重新审批）",
-	"  nrp-agent install-service [options]   安装为开机自启服务",
-	"  nrp-agent uninstall-service           卸载系统服务",
-	"  nrp-agent version",
+	"  queqiao [run] [options]             启动并持续连接（默认命令）",
+	"  queqiao status                      查看本地状态",
+	"  queqiao identity                    显示本机密钥码与公钥",
+	"  queqiao reset-identity [-yes]       重置本机身份（会变成新设备，需重新审批）",
+	"  queqiao install-service [options]   安装为开机自启服务",
+	"  queqiao uninstall-service           卸载系统服务",
+	"  queqiao version",
 	"",
 	"run 参数:",
 	"  -s <host:port>     服务端地址（首次运行必填，之后记在本地状态目录）",
@@ -62,7 +62,7 @@ func main() {
 	case "uninstall-service":
 		cmdUninstallService(args)
 	case "version", "-version", "--version":
-		fmt.Println("nrp-agent", version.String())
+		fmt.Println("queqiao", version.String())
 	case "help", "-h", "--help":
 		fmt.Print(strings.Join(usageLines, "\n") + "\n")
 	default:
@@ -101,11 +101,11 @@ func cmdRun(args []string) {
 	}
 	if a.ServerAddr() == "" {
 		fmt.Fprintln(os.Stderr, "首次运行需要提供服务端地址，例如：")
-		fmt.Fprintln(os.Stderr, "  nrp-agent -s 39.107.230.175:7600")
+		fmt.Fprintln(os.Stderr, "  queqiao -s 39.107.230.175:7600")
 		os.Exit(2)
 	}
 
-	fmt.Fprintf(os.Stderr, "NRP Agent %s\n  服务端:   %s\n  本机密钥: %s\n  状态目录: %s\n",
+	fmt.Fprintf(os.Stderr, "鹊桥 Agent %s\n  服务端:   %s\n  本机密钥: %s\n  状态目录: %s\n",
 		version.String(), a.ServerAddr(), a.KeyCode(), a.StateDir())
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

@@ -13,7 +13,7 @@ func TestKeyCodeFormat(t *testing.T) {
 		t.Fatal(err)
 	}
 	code := KeyCode(pub)
-	re := regexp.MustCompile("^NRP-[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}$")
+	re := regexp.MustCompile("^QIAO-[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}$")
 	if !re.MatchString(code) {
 		t.Fatalf("密钥码格式不符: %s", code)
 	}

@@ -22,8 +22,8 @@ type InstallOptions struct {
 }
 
 const (
-	launchdLabel = "io.nrp.agent"
-	systemdUnit  = "nrp-agent.service"
+	launchdLabel = "io.queqiao.agent"
+	systemdUnit  = "queqiao.service"
 )
 
 // Install 安装并启动系统服务。
@@ -52,7 +52,7 @@ func Uninstall(out io.Writer) error {
 		fmt.Fprintln(out, "已卸载 launchd 服务:", plist)
 		return nil
 	case "linux":
-		_ = exec.Command("systemctl", "disable", "--now", "nrp-agent").Run()
+		_ = exec.Command("systemctl", "disable", "--now", "queqiao").Run()
 		if err := os.Remove(filepath.Join("/etc/systemd/system", systemdUnit)); err != nil && !os.IsNotExist(err) {
 			return err
 		}
@@ -60,15 +60,15 @@ func Uninstall(out io.Writer) error {
 		fmt.Fprintln(out, "已卸载 systemd 服务:", systemdUnit)
 		return nil
 	default:
-		return fmt.Errorf("请手动移除 Windows 服务（sc delete nrp-agent）")
+		return fmt.Errorf("请手动移除 Windows 服务（sc delete queqiao）")
 	}
 }
 
 func installLaunchd(opts InstallOptions) error {
 	plist := launchdPlistPath()
 	args := serviceArgs(opts)
-	logDir := filepath.Join(homeDir(), ".nrp")
-	content := launchdPlist(args, filepath.Join(logDir, "nrp-agent.log"), filepath.Join(logDir, "nrp-agent.err.log"))
+	logDir := filepath.Join(homeDir(), ".queqiao")
+	content := launchdPlist(args, filepath.Join(logDir, "queqiao.log"), filepath.Join(logDir, "queqiao.err.log"))
 	if opts.DryRun {
 		fmt.Fprintln(opts.Out, "# 将写入", plist)
 		fmt.Fprintln(opts.Out, content)
@@ -90,7 +90,7 @@ func installLaunchd(opts InstallOptions) error {
 	_ = exec.Command("launchctl", "enable", "gui/"+uid()+"/"+launchdLabel).Run()
 	_ = exec.Command("launchctl", "kickstart", "-k", "gui/"+uid()+"/"+launchdLabel).Run()
 	fmt.Fprintln(opts.Out, "已安装并启动 launchd 服务:", plist)
-	fmt.Fprintln(opts.Out, "日志:", filepath.Join(logDir, "nrp-agent.log"))
+	fmt.Fprintln(opts.Out, "日志:", filepath.Join(logDir, "queqiao.log"))
 	return nil
 }
 
@@ -108,7 +108,7 @@ func installSystemd(opts InstallOptions) error {
 	if out, err := exec.Command("systemctl", "daemon-reload").CombinedOutput(); err != nil {
 		return fmt.Errorf("systemctl daemon-reload 失败: %v (%s)", err, strings.TrimSpace(string(out)))
 	}
-	if out, err := exec.Command("systemctl", "enable", "--now", "nrp-agent").CombinedOutput(); err != nil {
+	if out, err := exec.Command("systemctl", "enable", "--now", "queqiao").CombinedOutput(); err != nil {
 		return fmt.Errorf("systemctl enable 失败: %v (%s)", err, strings.TrimSpace(string(out)))
 	}
 	fmt.Fprintln(opts.Out, "已安装并启动 systemd 服务:", systemdUnit)
@@ -117,8 +117,8 @@ func installSystemd(opts InstallOptions) error {
 
 func installWindows(opts InstallOptions) error {
 	fmt.Fprintln(opts.Out, "Windows 下请用服务管理器或以下命令安装（示例）：")
-	fmt.Fprintf(opts.Out, "  sc create nrp-agent binPath= \"%s run -s %s\" start= auto\n", opts.ExePath, opts.ServerAddr)
-	fmt.Fprintln(opts.Out, "  sc start nrp-agent")
+	fmt.Fprintf(opts.Out, "  sc create queqiao binPath= \"%s run -s %s\" start= auto\n", opts.ExePath, opts.ServerAddr)
+	fmt.Fprintln(opts.Out, "  sc start queqiao")
 	return nil
 }
 
@@ -161,7 +161,7 @@ func systemdUnitFile(args []string) string {
 		quoted[i] = shellQuote(a)
 	}
 	return "[Unit]\n" +
-		"Description=NRP Agent (reverse tunnel client)\n" +
+		"Description=鹊桥 Agent (reverse tunnel client)\n" +
 		"After=network-online.target\nWants=network-online.target\n\n" +
 		"[Service]\n" +
 		"Type=simple\n" +

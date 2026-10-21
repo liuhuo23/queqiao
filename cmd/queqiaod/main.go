@@ -1,4 +1,4 @@
-// nrpd 是 NRP 服务端：控制面 + 公网映射 + Web 管理台。
+// queqiaod 是 鹊桥 服务端：控制面 + 公网映射 + Web 管理台。
 package main
 
 import (
@@ -10,15 +10,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"nrp/internal/config"
-	"nrp/internal/logx"
-	"nrp/internal/server"
-	"nrp/internal/store"
-	"nrp/internal/version"
+	"queqiao/internal/config"
+	"queqiao/internal/logx"
+	"queqiao/internal/server"
+	"queqiao/internal/store"
+	"queqiao/internal/version"
 )
 
 func main() {
-	fs := flag.NewFlagSet("nrpd", flag.ExitOnError)
+	fs := flag.NewFlagSet("queqiaod", flag.ExitOnError)
 	var (
 		configPath = fs.String("config", "", "配置文件路径（JSON，可选）")
 		dataDir    = fs.String("data-dir", "", "数据目录（覆盖配置文件）")
@@ -33,7 +33,7 @@ func main() {
 	)
 	_ = fs.Parse(os.Args[1:])
 	if *showVer {
-		fmt.Println("nrpd", version.String())
+		fmt.Println("queqiaod", version.String())
 		return
 	}
 
@@ -99,7 +99,7 @@ func main() {
 }
 
 func printBanner(srv *server.Server, cfg config.Server) {
-	fmt.Fprintf(os.Stderr, "\nNRP 服务端 %s 已启动\n", version.String())
+	fmt.Fprintf(os.Stderr, "\n鹊桥 服务端 %s 已启动\n", version.String())
 	fmt.Fprintf(os.Stderr, "  控制端口: %s (TLS)\n", srv.ControlAddr())
 	fmt.Fprintf(os.Stderr, "  管理台:   http://%s\n", srv.WebAddr())
 	fmt.Fprintf(os.Stderr, "  数据目录: %s\n", cfg.DataDir)

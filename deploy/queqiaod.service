@@ -1,12 +1,12 @@
 [Unit]
-Description=NRP server (no-config reverse tunnel)
-Documentation=https://github.com/yourname/nrp
+Description=鹊桥 server (no-config reverse tunnel)
+Documentation=https://github.com/yourname/queqiao
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/nrpd -config /etc/nrp/nrpd.json
+ExecStart=/usr/local/bin/queqiaod -config /etc/queqiao/queqiaod.json
 Restart=always
 RestartSec=3
 LimitNOFILE=65536
@@ -14,7 +14,7 @@ LimitNOFILE=65536
 # NoNewPrivileges=true
 # PrivateTmp=true
 # ProtectSystem=full
-# ReadWritePaths=/var/lib/nrp
+# ReadWritePaths=/var/lib/queqiao
 
 [Install]
 WantedBy=multi-user.target

@@ -58,7 +58,7 @@ func generate(hosts []string) (tls.Certificate, error) {
 	}
 	tmpl := &x509.Certificate{
 		SerialNumber:          serial,
-		Subject:               pkix.Name{CommonName: "nrp-server", Organization: []string{"NRP"}},
+		Subject:               pkix.Name{CommonName: "queqiao-server", Organization: []string{"鹊桥"}},
 		NotBefore:             time.Now().Add(-time.Hour),
 		NotAfter:              time.Now().Add(10 * 365 * 24 * time.Hour),
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
@@ -67,7 +67,7 @@ func generate(hosts []string) (tls.Certificate, error) {
 		IsCA:                  true,
 	}
 	seen := map[string]bool{}
-	for _, h := range append([]string{"localhost", "nrp-server"}, hosts...) {
+	for _, h := range append([]string{"localhost", "queqiao-server"}, hosts...) {
 		if h == "" || seen[h] {
 			continue
 		}
@@ -115,7 +115,7 @@ func ServerConfig(cert tls.Certificate) *tls.Config {
 	return &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS12,
-		NextProtos:   []string{"nrp/1"},
+		NextProtos:   []string{"queqiao/1"},
 	}
 }
 

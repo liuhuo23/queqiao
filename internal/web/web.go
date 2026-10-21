@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"nrp/internal/store"
+	"queqiao/internal/store"
 )
 
 //go:embed static
@@ -267,7 +267,7 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			if r.Header.Get("X-NRP-CSRF") == "" || r.Header.Get("X-NRP-CSRF") != sess.csrf {
+			if r.Header.Get("X-Queqiao-CSRF") == "" || r.Header.Get("X-Queqiao-CSRF") != sess.csrf {
 				writeErr(w, NewErr(http.StatusForbidden, "csrf_invalid", "CSRF 校验失败，请刷新页面"))
 				return
 			}
@@ -290,7 +290,7 @@ func (s *Server) currentSession(r *http.Request) (*adminSession, bool) {
 
 // ---------------- 会话存储 ----------------
 
-const cookieName = "nrp_admin"
+const cookieName = "queqiao_admin"
 
 type adminSession struct {
 	adminID  string

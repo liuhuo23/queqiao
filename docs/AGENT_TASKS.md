@@ -6,11 +6,11 @@
 ## 1. 依赖方向（禁止反向 import）
 
 ```text
-cmd/nrpd ─▶ internal/server ─▶ internal/web ─▶ internal/store
+cmd/queqiaod ─▶ internal/server ─▶ internal/web ─▶ internal/store
                 │                  │
                 ├─▶ internal/protocol, auth, tlsutil, config, machineid(只读)
                 └─▶ internal/store
-cmd/nrp-agent ─▶ internal/agent ─▶ internal/{protocol,auth,agentstate,machineid,tlsutil}
+cmd/queqiao ─▶ internal/agent ─▶ internal/{protocol,auth,agentstate,machineid,tlsutil}
                     └─▶ internal/agentsvc（安装系统服务）
 internal/web 只通过 `Backend` 接口访问运行时，不依赖 internal/server（避免循环依赖）。
 ```
@@ -45,7 +45,7 @@ internal/web 只通过 `Backend` 接口访问运行时，不依赖 internal/serv
 | internal/agent/agent.go | 连接循环、握手、配置同步、数据流转发、TLS TOFU |
 | internal/agentsvc/service.go | launchd / systemd 服务安装卸载 |
 | internal/web/static/* | 单页管理台（原生 HTML/CSS/JS，无构建） |
-| cmd/nrpd、cmd/nrp-agent | 参数解析、banner、信号处理 |
+| cmd/queqiaod、cmd/queqiao | 参数解析、banner、信号处理 |
 
 ## 3. 任务拆分（可并行）
 
@@ -71,7 +71,7 @@ internal/web 只通过 `Backend` 接口访问运行时，不依赖 internal/serv
 | M2-3 | Agent 本地服务健康检查（TCP dial + 状态上报） | internal/agent, protocol | T3 | 设备页显示每条映射的本地可达性 |
 | M2-4 | Prometheus 指标完善 + Grafana 面板示例 | internal/server/backend.go, deploy/ | T5 | /metrics 覆盖每设备/每规则维度 |
 | M2-5 | 管理台增强：批量操作、搜索、日志分页 | internal/web + static | T5 | 200 条规则下操作流畅 |
-| M2-6 | TLS 自动证书（Let's Encrypt / DNS-01） | internal/tlsutil, cmd/nrpd | T7 | 域名证书自动续期；Agent 可用 -ca 标准校验 |
+| M2-6 | TLS 自动证书（Let's Encrypt / DNS-01） | internal/tlsutil, cmd/queqiaod | T7 | 域名证书自动续期；Agent 可用 -ca 标准校验 |
 | M2-7 | 多管理员 + RBAC（只读/运维/超管） | store, web, server | T5 | 只读账号无法改配置；审计记录操作人 |
 
 ### 后续（M3/M4）
@@ -97,8 +97,8 @@ make build && bash scripts/e2e.sh        # 全链路
 go test ./...                            # 单测
 go vet ./...
 # 手动起服务端（本机调试）
-go run ./cmd/nrpd -data-dir /tmp/nrp-data -control-addr 127.0.0.1:7600 \
+go run ./cmd/queqiaod -data-dir /tmp/queqiao-data -control-addr 127.0.0.1:7600 \
   -web-addr 127.0.0.1:7610 -public-host 127.0.0.1 -public-bind-addr 127.0.0.1
 # 手动起 Agent
-go run ./cmd/nrp-agent -s 127.0.0.1:7600 -state-dir /tmp/nrp-agent
+go run ./cmd/queqiao -s 127.0.0.1:7600 -state-dir /tmp/queqiao
 ```

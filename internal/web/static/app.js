@@ -1,5 +1,5 @@
 /* ==========================================================================
-   NRP 管理台前端（原生 JS：无框架 / 无构建 / 无外部依赖）
+   鹊桥 管理台前端（原生 JS：无框架 / 无构建 / 无外部依赖）
    结构：
      1. 常量
      2. DOM 与格式化工具
@@ -265,7 +265,7 @@
   /**
    * 统一请求封装：
    * - credentials: same-origin（Cookie 会话）
-   * - 非 GET 自动带 X-NRP-CSRF（来自 /me 或登录响应的 csrf_token）
+   * - 非 GET 自动带 X-Queqiao-CSRF（来自 /me 或登录响应的 csrf_token）
    * - 非 2xx 抛出 ApiError；401 统一回到登录视图；错误 message 用 toast 呈现
    */
   async function apiRequest(path, options) {
@@ -279,7 +279,7 @@
       body = JSON.stringify(opts.body);
     }
     if (method !== 'GET' && state.me && state.me.csrf_token) {
-      headers['X-NRP-CSRF'] = state.me.csrf_token;
+      headers['X-Queqiao-CSRF'] = state.me.csrf_token;
     }
 
     let response;
@@ -380,7 +380,7 @@
   // 弹窗外壳：负责遮罩、Esc 关闭、焦点循环与滚动锁定
   function createModalShell(title, bodyNode) {
     closeActiveModal();
-    const titleId = 'nrp-modal-title';
+    const titleId = 'queqiao-modal-title';
     const previousFocus = document.activeElement;
     const footer = el('div', { class: 'modal-footer' });
     const dialog = el('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId },
@@ -478,7 +478,7 @@
     return new Promise((resolve) => {
       const fields = options.fields || [];
       const inputs = {};
-      const form = el('form', { class: 'form', id: 'nrp-modal-form', novalidate: true });
+      const form = el('form', { class: 'form', id: 'queqiao-modal-form', novalidate: true });
       const errorNode = el('p', { class: 'form-error', role: 'alert', hidden: true });
       const showError = (message) => {
         errorNode.textContent = message;
@@ -490,7 +490,7 @@
       }
 
       for (const field of fields) {
-        const inputId = 'nrp-field-' + field.name;
+        const inputId = 'queqiao-field-' + field.name;
         let input;
         if (field.type === 'checkbox') {
           input = el('input', { class: 'checkbox', id: inputId, type: 'checkbox' });
@@ -546,7 +546,7 @@
       const submitButton = el('button', {
         class: options.danger ? 'btn btn-danger' : 'btn btn-primary',
         type: 'submit',
-        form: 'nrp-modal-form',
+        form: 'queqiao-modal-form',
         text: options.submitText || '保存'
       });
       shell.footer.appendChild(cancelButton);
@@ -635,7 +635,7 @@
     else hideLoginError();
     const passwordInput = $('#login-password');
     if (passwordInput) passwordInput.value = '';
-    document.title = '登录 · NRP 管理台';
+    document.title = '登录 · 鹊桥 管理台';
     renderConnBadge();
     if (location.hash) history.replaceState(null, '', location.pathname + location.search);
     window.setTimeout(() => {
@@ -677,7 +677,7 @@
     if (!error) return '登录失败，请重试';
     if (error.code === 'invalid_credentials' || error.status === 401) return '用户名或密码不正确';
     if (error.code === 'too_many_attempts' || error.status === 429) return '登录尝试过于频繁，请稍后再试';
-    if (error.code === 'network_error') return '无法连接服务端，请确认 NRP 服务正在运行';
+    if (error.code === 'network_error') return '无法连接服务端，请确认 鹊桥 服务正在运行';
     return error.message || '登录失败，请重试';
   }
 
@@ -872,7 +872,7 @@
     state.navToken = token;
     const page = $('#page');
     if (!page) return;
-    document.title = NAV_LABELS[nextRoute] + ' · NRP 管理台';
+    document.title = NAV_LABELS[nextRoute] + ' · 鹊桥 管理台';
     page.replaceChildren(pageLoading('加载中…'));
 
     try {
@@ -949,7 +949,7 @@
   function toggleAutoRefresh() {
     state.autoRefresh = !state.autoRefresh;
     try {
-      window.localStorage.setItem('nrp.autoRefresh', state.autoRefresh ? '1' : '0');
+      window.localStorage.setItem('queqiao.autoRefresh', state.autoRefresh ? '1' : '0');
     } catch (error) {
       // 隐私模式下 localStorage 可能不可用，忽略
     }
@@ -1366,7 +1366,7 @@
     if (state.deviceFilter === 'blocked') {
       return emptyState('没有已封禁设备', '被临时禁用的设备会显示在这里，可随时解封。');
     }
-    return emptyState('还没有设备接入', '在你需要穿透的主机上运行 nrp-agent，它会自动向服务端登记并出现在这里。');
+    return emptyState('还没有设备接入', '在你需要穿透的主机上运行 queqiao，它会自动向服务端登记并出现在这里。');
   }
 
   const DEVICE_COLUMNS = [
@@ -2225,7 +2225,7 @@
       class: 'input',
       type: 'text',
       value: settings.public_host || '',
-      placeholder: '39.107.230.175 或 nrp.example.com',
+      placeholder: '39.107.230.175 或 queqiao.example.com',
       autocomplete: 'off',
       spellcheck: 'false'
     });
@@ -2451,7 +2451,7 @@
 
   function init() {
     try {
-      if (window.localStorage.getItem('nrp.autoRefresh') === '0') state.autoRefresh = false;
+      if (window.localStorage.getItem('queqiao.autoRefresh') === '0') state.autoRefresh = false;
     } catch (error) {
       // localStorage 不可用时保持默认开启
     }

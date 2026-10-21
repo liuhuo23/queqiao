@@ -1,7 +1,7 @@
 {
   "control_addr": ":39999",
   "web_addr": "127.0.0.1:7610",
-  "data_dir": "/var/lib/nrp",
+  "data_dir": "/var/lib/queqiao",
   "public_host": "39.107.230.175",
   "public_bind_addr": "0.0.0.0",
   "http_addr": "",

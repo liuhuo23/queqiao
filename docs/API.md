@@ -1,9 +1,9 @@
-# NRP 管理 API v1
+# 鹊桥 管理 API v1
 
 Base URL：http://127.0.0.1:7610（默认仅本机；生产由 nginx/SSH 隧道暴露）
 
 - 除 /api/v1/auth/login 与 /api/v1/health 外，所有请求需要登录 Cookie。
-- 所有非 GET 请求必须带 CSRF 头：X-NRP-CSRF: <me.csrf_token>。
+- 所有非 GET 请求必须带 CSRF 头：X-Queqiao-CSRF: <me.csrf_token>。
 - 请求/响应均为 application/json; charset=utf-8。
 - 成功：HTTP 200 + 业务对象；失败：HTTP 4xx/5xx + 错误对象。
 
@@ -23,7 +23,7 @@ Base URL：http://127.0.0.1:7610（默认仅本机；生产由 nginx/SSH 隧道�
 ```json
 请求 {"username":"admin","password":"..."}
 响应 {"admin":{"id":"adm_...","username":"admin"},"csrf_token":"<32B hex>"}
-     Set-Cookie: nrp_admin=<token>; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200
+     Set-Cookie: queqiao_admin=<token>; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200
 ```
 
 失败：401 invalid_credentials；429 too_many_attempts。
@@ -72,7 +72,7 @@ Device 对象（列表项在基础字段上追加运行时字段）：
 ```json
 {
   "id": "dev_5f3a1c9e2b74",
-  "key_code": "NRP-7K3F-9Q2M-8XZP",
+  "key_code": "QIAO-7K3F-9Q2M-8XZP",
   "name": "macbook-pro",
   "status": "active",              // pending | active | blocked
   "machine_id": "9f86d0...64hex",
@@ -235,13 +235,13 @@ max_devices 1-10000；max_rules_per_device 1-1000；admin_session_ttl_sec 300-60
 ### GET /metrics   （无需登录，仅本机管理口；nginx 也可拦截）
 Prometheus 文本格式：
 ```text
-nrp_devices_online 2
-nrp_devices_pending 1
-nrp_rules_active 4
-nrp_conns_current 4
-nrp_bytes_in_total 1234567
-nrp_bytes_out_total 7654321
-nrp_auth_failures_total 3
+queqiao_devices_online 2
+queqiao_devices_pending 1
+queqiao_rules_active 4
+queqiao_conns_current 4
+queqiao_bytes_in_total 1234567
+queqiao_bytes_out_total 7654321
+queqiao_auth_failures_total 3
 ```
 
 ---
@@ -250,7 +250,7 @@ nrp_auth_failures_total 3
 
 - 启动：GET /api/v1/me → 200 进入主界面；401 显示登录页。
 - 所有 fetch 统一封装：非 2xx 弹出错误对象 message；401 跳登录。
-- 非 GET 自动加 X-NRP-CSRF。
+- 非 GET 自动加 X-Queqiao-CSRF。
 - 轮询：overview/devices/rules 每 4s；日志页每 8s。
 - 页面：登录 / 概览 / 设备 / 映射 / 日志 / 设置，顶部导航 + 内容区，纯原生 JS（无框架、无构建）。
 - 颜色：跟随 prefers-color-scheme；主色 #2563eb；危险操作红色确认。

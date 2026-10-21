@@ -12,8 +12,8 @@ import (
 
 	"github.com/hashicorp/yamux"
 
-	"nrp/internal/protocol"
-	"nrp/internal/store"
+	"queqiao/internal/protocol"
+	"queqiao/internal/store"
 )
 
 // session 表示一台在线设备的控制会话。

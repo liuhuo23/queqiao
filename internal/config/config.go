@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// Server 是 nrpd 的启动配置。管理台里的设置（Settings）是另一层，存于数据目录。
+// Server 是 queqiaod 的启动配置。管理台里的设置（Settings）是另一层，存于数据目录。
 type Server struct {
 	ControlAddr    string `json:"control_addr"`
 	WebAddr        string `json:"web_addr"`
@@ -29,7 +29,7 @@ func Defaults() Server {
 	return Server{
 		ControlAddr:    ":7600",
 		WebAddr:        "127.0.0.1:7610",
-		DataDir:        "/var/lib/nrp",
+		DataDir:        "/var/lib/queqiao",
 		PublicHost:     "",
 		PublicBindAddr: "0.0.0.0",
 		HTTPAddr:       "",

@@ -21,12 +21,12 @@ import (
 
 	"github.com/hashicorp/yamux"
 
-	"nrp/internal/agentstate"
-	"nrp/internal/auth"
-	"nrp/internal/machineid"
-	"nrp/internal/protocol"
-	"nrp/internal/tlsutil"
-	"nrp/internal/version"
+	"queqiao/internal/agentstate"
+	"queqiao/internal/auth"
+	"queqiao/internal/machineid"
+	"queqiao/internal/protocol"
+	"queqiao/internal/tlsutil"
+	"queqiao/internal/version"
 )
 
 const (
@@ -138,7 +138,7 @@ func (a *Agent) IdentityPath() string { return agentstate.IdentityPath(a.opts.St
 // Run 持续连接服务端，直到 ctx 结束（网络错误自动重连）。
 func (a *Agent) Run(ctx context.Context) error {
 	if a.state.ServerAddr == "" {
-		return errors.New("尚未配置服务端地址，请首次运行时指定：nrp-agent -s <服务端IP或域名>:7600")
+		return errors.New("尚未配置服务端地址，请首次运行时指定：queqiao -s <服务端IP或域名>:7600")
 	}
 	backoff := time.Second
 	for {
@@ -296,7 +296,7 @@ func (a *Agent) rejectError(raw []byte) error {
 	case protocol.CodeUnsupportedVersion:
 		return &retryError{err: errors.New(msg + "，请升级 Agent"), fatal: true}
 	case protocol.CodeBadProof:
-		return &retryError{err: errors.New(msg + "，本机身份密钥可能损坏，可执行 nrp-agent reset-identity 重置"), fatal: true}
+		return &retryError{err: errors.New(msg + "，本机身份密钥可能损坏，可执行 queqiao reset-identity 重置"), fatal: true}
 	case protocol.CodeFingerprint:
 		return &retryError{err: errors.New(msg + "，请管理员在管理台执行「重绑定机器」"), delay: 5 * time.Minute}
 	case protocol.CodeBlocked, protocol.CodeDeviceLimit:
@@ -591,7 +591,7 @@ func (a *Agent) tlsConfig() (*tls.Config, error) {
 	}
 	cfg := &tls.Config{
 		MinVersion: tls.VersionTLS12,
-		NextProtos: []string{"nrp/1"},
+		NextProtos: []string{"queqiao/1"},
 	}
 	if net.ParseIP(host) == nil {
 		cfg.ServerName = host
@@ -655,7 +655,7 @@ func yamuxConfig() *yamux.Config {
 
 func normalizeServerAddr(addr string) string {
 	addr = strings.TrimSpace(addr)
-	addr = strings.TrimPrefix(addr, "nrp://")
+	addr = strings.TrimPrefix(addr, "queqiao://")
 	addr = strings.TrimPrefix(addr, "tls://")
 	if _, _, err := net.SplitHostPort(addr); err != nil {
 		addr = net.JoinHostPort(addr, "7600")

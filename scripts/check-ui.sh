@@ -4,8 +4,8 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
 export GOPATH="$PWD/.gomodcache/gopath" GOMODCACHE="$PWD/.gomodcache/gopath/pkg/mod" GOFLAGS=-mod=mod GOCACHE="$PWD/.gomodcache/build" TMPDIR="$PWD/.gomodcache/tmp"
 mkdir -p .e2e/data
-go build -o .e2e/nrpd ./cmd/nrpd || exit 1
-./.e2e/nrpd -data-dir .e2e/data -control-addr 127.0.0.1:17700 -web-addr 127.0.0.1:17710 -public-host 127.0.0.1 -public-bind-addr 127.0.0.1 > .e2e/ui.log 2>&1 &
+go build -o .e2e/queqiaod ./cmd/queqiaod || exit 1
+./.e2e/queqiaod -data-dir .e2e/data -control-addr 127.0.0.1:17700 -web-addr 127.0.0.1:17710 -public-host 127.0.0.1 -public-bind-addr 127.0.0.1 > .e2e/ui.log 2>&1 &
 SRV=$!
 trap 'kill $SRV 2>/dev/null' EXIT
 for i in $(seq 1 100); do curl -sf http://127.0.0.1:17710/api/v1/health >/dev/null 2>&1 && break; sleep 0.1; done
