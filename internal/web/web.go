@@ -396,11 +396,8 @@ func (s *Server) serveStatic(w http.ResponseWriter, r *http.Request) {
 	}
 	if f, err := sub.Open(clean); err == nil {
 		_ = f.Close()
-		if clean == "index.html" {
-			w.Header().Set("Cache-Control", "no-cache")
-		} else {
-			w.Header().Set("Cache-Control", "public, max-age=300")
-		}
+		// 管理台前端只有内嵌的三个小文件；不缓存，保证升级后刷新即可拿到新版本。
+		w.Header().Set("Cache-Control", "no-cache")
 		http.FileServer(http.FS(sub)).ServeHTTP(w, r)
 		return
 	}

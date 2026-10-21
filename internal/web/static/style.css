@@ -1658,3 +1658,7 @@ select.input option {
     padding: 36px 16px;
   }
 }
+
+/* 自动刷新开关：开启时高亮，暂停时弱化 */
+#auto-refresh-btn[aria-pressed="true"] { color: var(--accent, #2563eb); }
+#auto-refresh-btn[aria-pressed="false"] { opacity: .55; }

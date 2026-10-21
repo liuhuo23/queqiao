@@ -234,7 +234,10 @@
     logs: [],
     logKind: 'audit',
     settings: null,
-    refs: {}                // 当前页面需要保留的 DOM 引用（列表容器、筛选控件等）
+    refs: {},               // 当前页面需要保留的 DOM 引用（列表容器、筛选控件等）
+    autoRefresh: true,      // 自动刷新开关（顶栏可切换，持久化到 localStorage）
+    signatures: {},         // 各视图数据签名：内容没变时跳过整页重绘
+    overviewRefs: null      // 概览页需要原地更新的节点（运行时长/流量/连接数）
   };
 
   const VIEWS = {};
@@ -858,6 +861,8 @@
     if (!state.me) return;
     const nextRoute = ROUTES.indexOf(route) === -1 ? DEFAULT_ROUTE : route;
     state.route = nextRoute;
+    state.signatures = {};
+    state.overviewRefs = null;
     ensureHash();
     highlightNav();
     stopPolling();
@@ -885,12 +890,18 @@
 
   function startPolling(intervalMs) {
     stopPolling();
-    if (!intervalMs) return;
+    if (!intervalMs || !state.autoRefresh) {
+      updateAutoRefreshUI();
+      return;
+    }
     state.pollTimer = window.setInterval(() => {
       if (!state.me) return;
       if (document.visibilityState === 'hidden') return;
+      // 用户正在输入、弹窗打开或选中文本时跳过本次刷新，避免打断操作
+      if (isUserBusy()) return;
       refreshCurrentView();
     }, intervalMs);
+    updateAutoRefreshUI();
   }
 
   function stopPolling() {
@@ -913,6 +924,53 @@
     } finally {
       state.refreshing = false;
     }
+  }
+
+  // ---------- 自动刷新 / 局部更新辅助 ----------
+  function isUserBusy() {
+    if (activeModal) return true;
+    const active = document.activeElement;
+    if (active) {
+      const tag = active.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || active.isContentEditable) return true;
+    }
+    const selection = window.getSelection ? window.getSelection() : null;
+    if (selection && selection.toString().length > 0) return true;
+    return false;
+  }
+
+  function updateAutoRefreshUI() {
+    const button = $('#auto-refresh-btn');
+    if (!button) return;
+    button.setAttribute('aria-pressed', String(state.autoRefresh));
+    button.title = state.autoRefresh ? '点击暂停自动刷新' : '点击恢复自动刷新';
+  }
+
+  function toggleAutoRefresh() {
+    state.autoRefresh = !state.autoRefresh;
+    try {
+      window.localStorage.setItem('nrp.autoRefresh', state.autoRefresh ? '1' : '0');
+    } catch (error) {
+      // 隐私模式下 localStorage 可能不可用，忽略
+    }
+    const view = VIEWS[state.route];
+    if (state.autoRefresh && view && view.pollMs) startPolling(view.pollMs);
+    else stopPolling();
+    updateAutoRefreshUI();
+    toast(state.autoRefresh ? '已开启自动刷新' : '已暂停自动刷新，可点「刷新」手动更新', 'success');
+  }
+
+  function manualRefresh() {
+    refreshCurrentView();
+    refreshNavCount();
+  }
+
+  // 重绘后恢复滚动位置，避免自动刷新把页面滚回顶部
+  function withScrollPreserved(fn) {
+    const x = window.scrollX;
+    const y = window.scrollY;
+    fn();
+    if (window.scrollX !== x || window.scrollY !== y) window.scrollTo(x, y);
   }
 
   function pageLoading(label) {
@@ -953,15 +1011,15 @@
       el('div', { class: 'card-body' + (opts.flush ? ' card-body-flush' : '') }, body));
   }
 
-  function statCard(label, value, sub, tone) {
-    return el('div', { class: 'stat' },
+  function statCard(label, value, sub, tone, key) {
+    return el('div', { class: 'stat', 'data-stat': key || null },
       el('div', { class: 'stat-label', text: label }),
       el('div', { class: 'stat-value' + (tone ? ' tone-' + tone : ''), text: value }),
       el('div', { class: 'stat-sub', text: sub || '' }));
   }
 
-  function kvItem(label, value) {
-    return el('div', { class: 'kv' },
+  function kvItem(label, value, key) {
+    return el('div', { class: 'kv', 'data-kv': key || null },
       el('div', { class: 'kv-label', text: label }),
       el('div', { class: 'kv-value' }, value));
   }
@@ -1000,15 +1058,19 @@
   }
 
   // 表格：列描述 { label, render(row) }，每格数据都通过 createElement/textContent 生成
-  function dataTable(columns, rows) {
+  function dataTable(columns, rows, rowAttrs) {
     const headRow = el('tr', null, columns.map((column) => el('th', { text: column.label })));
-    const bodyRows = rows.map((row, index) => el('tr', null, columns.map((column) => {
-      const cellContent = column.render(row, index);
-      const cell = el('div', { class: 'cell' + (column.align === 'right' ? ' cell-right' : '') }, cellContent);
-      const td = el('td', null, cell);
-      if (column.label) td.dataset.label = column.label;
-      return td;
-    })));
+    const bodyRows = rows.map((row, index) => {
+      const tr = el('tr', null, columns.map((column) => {
+        const cellContent = column.render(row, index);
+        const cell = el('div', { class: 'cell' + (column.align === 'right' ? ' cell-right' : '') }, cellContent);
+        const td = el('td', null, cell);
+        if (column.label) td.dataset.label = column.label;
+        return td;
+      }));
+      if (typeof rowAttrs === 'function') rowAttrs(tr, row, index);
+      return tr;
+    });
     return el('div', { class: 'table-wrap' },
       el('table', { class: 'table' },
         el('thead', null, headRow),
@@ -1105,7 +1167,14 @@
       }
     }
     updateNavCount();
-    if (state.route === 'overview') renderOverviewPage();
+    if (state.route !== 'overview') return;
+    const signature = overviewSignature();
+    if (state.signatures.overview !== signature) {
+      state.signatures.overview = signature;
+      renderOverviewPage();
+    } else {
+      updateOverviewLive();
+    }
   }
 
   function renderOverviewPage() {
@@ -1132,20 +1201,65 @@
       statCard('在线设备', num(counts.devices_online), '共 ' + num(counts.devices_total) + ' 台已登记'),
       statCard('待审批', num(counts.devices_pending), pendingDevices.length ? '需要管理员处理' : '暂无待处理设备', counts.devices_pending ? 'warn' : null),
       statCard('映射规则', num(counts.rules_total), '启用 ' + num(counts.rules_active) + ' 条'),
-      statCard('当前连接', num(traffic.conns_current), '累计 ' + num(traffic.conns_total) + ' 次'),
+      statCard('当前连接', num(traffic.conns_current), '累计 ' + num(traffic.conns_total) + ' 次', null, 'conns'),
       statCard('累计流量', fmtBytes(toNumber(traffic.bytes_in) + toNumber(traffic.bytes_out)),
-        '入站 ' + fmtBytes(traffic.bytes_in) + ' · 出站 ' + fmtBytes(traffic.bytes_out))));
+        '入站 ' + fmtBytes(traffic.bytes_in) + ' · 出站 ' + fmtBytes(traffic.bytes_out), null, 'traffic')));
 
     nodes.push(card('服务信息', el('div', { class: 'kv-grid' },
       kvItem('版本', monoText(server.version ? 'v' + server.version : '—')),
-      kvItem('运行时长', el('span', { text: fmtDuration(server.uptime_sec) })),
+      kvItem('运行时长', el('span', { text: fmtDuration(server.uptime_sec) }), 'uptime'),
       kvItem('控制地址', monoText(server.control_addr)),
       kvItem('管理地址', monoText(server.web_addr)),
       kvItem('公网主机', monoText(server.public_host)),
       kvItem('映射端口段', monoText(formatPortRange(server.port_range))),
       kvItem('HTTP 监听', monoText(server.http_addr || '未启用')))));
 
-    page.replaceChildren(...nodes);
+    withScrollPreserved(() => page.replaceChildren(...nodes));
+    collectOverviewRefs(page);
+  }
+
+  // 概览的数据签名：只包含"需要整页重绘"的字段（流量/运行时长走原地更新）
+  function overviewSignature() {
+    const overview = state.overview || {};
+    const server = overview.server || {};
+    const counts = overview.counts || {};
+    const pending = (state.pendingDevices || []).map((d) => [d.id, d.name, d.key_code, d.os, d.arch]);
+    return JSON.stringify([server.version, server.control_addr, server.web_addr, server.public_host,
+      server.port_range, server.http_addr, counts, pending]);
+  }
+
+  function collectOverviewRefs(page) {
+    const refs = {};
+    Array.prototype.forEach.call(page.querySelectorAll('[data-stat]'), (node) => {
+      refs[node.dataset.stat] = {
+        value: node.querySelector('.stat-value'),
+        sub: node.querySelector('.stat-sub')
+      };
+    });
+    refs.uptime = page.querySelector('[data-kv="uptime"] .kv-value');
+    state.overviewRefs = refs;
+  }
+
+  function setTextIfChanged(node, text) {
+    if (node && node.textContent !== text) node.textContent = text;
+  }
+
+  // 每轮轮询只更新数字，不重建 DOM（避免闪烁和滚动跳动）
+  function updateOverviewLive() {
+    const refs = state.overviewRefs;
+    const overview = state.overview;
+    if (!refs || !overview || state.route !== 'overview') return;
+    const server = overview.server || {};
+    const traffic = overview.traffic || {};
+    setTextIfChanged(refs.uptime, fmtDuration(server.uptime_sec));
+    if (refs.traffic) {
+      setTextIfChanged(refs.traffic.value, fmtBytes(toNumber(traffic.bytes_in) + toNumber(traffic.bytes_out)));
+      setTextIfChanged(refs.traffic.sub, '入站 ' + fmtBytes(traffic.bytes_in) + ' · 出站 ' + fmtBytes(traffic.bytes_out));
+    }
+    if (refs.conns) {
+      setTextIfChanged(refs.conns.value, num(traffic.conns_current));
+      setTextIfChanged(refs.conns.sub, '累计 ' + num(traffic.conns_total) + ' 次');
+    }
   }
 
   function renderPendingAlert(devices) {
@@ -1219,7 +1333,14 @@
     const query = state.deviceFilter === 'all' ? '' : '?status=' + encodeURIComponent(state.deviceFilter);
     const data = await apiRequest('/devices' + query, { silent: silent });
     state.devices = data && Array.isArray(data.devices) ? data.devices : [];
-    if (state.route === 'devices') renderDevicesTable();
+    if (state.route !== 'devices') return;
+    const signature = state.deviceFilter + '|' + deviceSignature(state.devices);
+    if (state.signatures.devices !== signature) {
+      state.signatures.devices = signature;
+      renderDevicesTable();
+    } else {
+      updateDeviceLiveCells();
+    }
   }
 
   function renderDevicesTable() {
@@ -1230,7 +1351,9 @@
       refs.host.replaceChildren(devicesEmptyState());
       return;
     }
-    refs.host.replaceChildren(dataTable(DEVICE_COLUMNS, state.devices));
+    withScrollPreserved(() => refs.host.replaceChildren(dataTable(DEVICE_COLUMNS, state.devices, (tr, device) => {
+      tr.dataset.deviceId = device.id;
+    })));
   }
 
   function devicesEmptyState() {
@@ -1299,7 +1422,7 @@
     return el('div', { class: 'stack-tight' }, children);
   }
 
-  function renderHeartbeatCell(device) {
+  function heartbeatInfo(device) {
     const online = !!device.online;
     const ms = parseTime(device.last_seen_at);
     let label;
@@ -1311,11 +1434,45 @@
       label = '从未连接';
     }
     if (!online && ms !== null) label = '离线 · ' + label;
-    return el('time', {
-      class: 'small ' + (online ? 'text-success' : 'muted'),
+    return {
+      text: label,
+      className: 'small ' + (online ? 'text-success' : 'muted'),
       datetime: device.last_seen_at || '',
-      title: ms !== null ? '最近心跳：' + fmtDateTime(ms) : '暂无心跳记录',
-      text: label
+      title: ms !== null ? '最近心跳：' + fmtDateTime(ms) : '暂无心跳记录'
+    };
+  }
+
+  function renderHeartbeatCell(device) {
+    const info = heartbeatInfo(device);
+    return el('time', {
+      class: info.className,
+      datetime: info.datetime,
+      title: info.title,
+      'data-role': 'heartbeat',
+      text: info.text
+    });
+  }
+
+  // 设备签名：排除 last_seen_sec 这类每轮都会变化的字段
+  function deviceSignature(devices) {
+    return JSON.stringify(devices.map((d) => [d.id, d.status, d.name, d.online, d.key_code, d.hostname,
+      d.os, d.arch, d.agent_version, d.last_ip, d.rule_count, d.fingerprint_conflict, d.note, d.last_error, d.approved_at]));
+  }
+
+  function updateDeviceLiveCells() {
+    const refs = state.refs.devices;
+    if (!refs || !refs.host) return;
+    const byId = new Map(state.devices.map((d) => [d.id, d]));
+    Array.prototype.forEach.call(refs.host.querySelectorAll('tr[data-device-id]'), (row) => {
+      const device = byId.get(row.dataset.deviceId);
+      if (!device) return;
+      const cell = row.querySelector('[data-role="heartbeat"]');
+      if (!cell) return;
+      const info = heartbeatInfo(device);
+      cell.textContent = info.text;
+      cell.className = info.className;
+      cell.setAttribute('datetime', info.datetime);
+      cell.title = info.title;
     });
   }
 
@@ -1679,7 +1836,13 @@
     if (state.route !== 'rules') return;
     syncRuleDeviceFilter();
     syncRuleFormDevices();
-    renderRulesTable();
+    const signature = ruleSignature(state.rules);
+    if (state.signatures.rules !== signature) {
+      state.signatures.rules = signature;
+      renderRulesTable();
+    } else {
+      updateRuleLiveCells();
+    }
   }
 
   function syncRuleDeviceFilter() {
@@ -1765,7 +1928,9 @@
       }
       return;
     }
-    refs.listHost.replaceChildren(dataTable(RULE_COLUMNS, state.rules));
+    withScrollPreserved(() => refs.listHost.replaceChildren(dataTable(RULE_COLUMNS, state.rules, (tr, rule) => {
+      tr.dataset.ruleId = rule.id;
+    })));
   }
 
   const RULE_COLUMNS = [
@@ -1807,11 +1972,33 @@
 
   function renderRuleTrafficCell(rule) {
     return el('div', { class: 'stack-tight' },
-      el('span', { class: 'small', text: '入站 ' + fmtBytes(rule.bytes_in) }),
+      el('span', { class: 'small', 'data-role': 'traffic-in', text: '入站 ' + fmtBytes(rule.bytes_in) }),
       el('span', {
         class: 'small muted',
+        'data-role': 'traffic-out',
         text: '出站 ' + fmtBytes(rule.bytes_out) + ' · 连接 ' + num(rule.conns_current)
       }));
+  }
+
+  // 规则签名：排除流量/连接数，流量走单元格原地更新
+  function ruleSignature(rules) {
+    const devices = state.allDevices.map((d) => [d.id, d.status, d.name]);
+    return JSON.stringify([state.ruleDeviceFilter, devices, rules.map((r) => [r.id, r.name, r.proto,
+      r.local_addr, r.remote_port, r.domain, r.enabled, r.state, r.error, r.device_id, r.device_name, r.public_addr])]);
+  }
+
+  function updateRuleLiveCells() {
+    const refs = state.refs.rules;
+    if (!refs || !refs.listHost) return;
+    const byId = new Map(state.rules.map((r) => [r.id, r]));
+    Array.prototype.forEach.call(refs.listHost.querySelectorAll('tr[data-rule-id]'), (row) => {
+      const rule = byId.get(row.dataset.ruleId);
+      if (!rule) return;
+      const inCell = row.querySelector('[data-role="traffic-in"]');
+      const outCell = row.querySelector('[data-role="traffic-out"]');
+      if (inCell) inCell.textContent = '入站 ' + fmtBytes(rule.bytes_in);
+      if (outCell) outCell.textContent = '出站 ' + fmtBytes(rule.bytes_out) + ' · 连接 ' + num(rule.conns_current);
+    });
   }
 
   function renderRuleEnabledCell(rule) {
@@ -1963,7 +2150,11 @@
     // 契约要求倒序；服务端已是倒序时这里是无操作
     logs.sort((left, right) => timeValue(right.at) - timeValue(left.at));
     state.logs = logs.slice(0, LOG_LIMIT);
-    if (state.route === 'logs') renderLogsTable();
+    if (state.route !== 'logs') return;
+    const signature = state.logKind + '|' + JSON.stringify(state.logs);
+    if (state.signatures.logs === signature) return;
+    state.signatures.logs = signature;
+    renderLogsTable();
   }
 
   function renderLogsTable() {
@@ -1976,7 +2167,7 @@
         : emptyState('暂无 Agent 事件', 'Agent 连接、断开、心跳异常等事件会出现在这里。'));
       return;
     }
-    refs.listHost.replaceChildren(dataTable(LOG_COLUMNS, state.logs));
+    withScrollPreserved(() => refs.listHost.replaceChildren(dataTable(LOG_COLUMNS, state.logs)));
   }
 
   const LOG_COLUMNS = [
@@ -2241,6 +2432,11 @@
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
     const logoutButton = $('#logout-btn');
     if (logoutButton) logoutButton.addEventListener('click', handleLogout);
+    const autoRefreshButton = $('#auto-refresh-btn');
+    if (autoRefreshButton) autoRefreshButton.addEventListener('click', toggleAutoRefresh);
+    const refreshNowButton = $('#refresh-now-btn');
+    if (refreshNowButton) refreshNowButton.addEventListener('click', manualRefresh);
+    updateAutoRefreshUI();
     window.addEventListener('hashchange', () => {
       if (state.me) navigate(currentRoute());
     });
@@ -2254,6 +2450,11 @@
   }
 
   function init() {
+    try {
+      if (window.localStorage.getItem('nrp.autoRefresh') === '0') state.autoRefresh = false;
+    } catch (error) {
+      // localStorage 不可用时保持默认开启
+    }
     bindChrome();
     renderConnBadge();
     loadHealth();

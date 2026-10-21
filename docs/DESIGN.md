@@ -195,7 +195,11 @@ Audit   : at, actor, action, target, detail, ip（append-only JSONL）
 5. **日志**：审计日志 + Agent 上送事件。
 6. **设置**：公网主机名、端口段、HTTP 监听、自动批准、最大设备数、修改密码。
 
-前端只依赖 fetch，3-5s 轮询；变更接口需 CSRF 头；输出一律 textContent 防 XSS；CSP 头。
+前端只依赖 fetch；变更接口需 CSRF 头；输出一律 textContent 防 XSS；CSP 头。
+
+**自动刷新策略**（避免刷新打断操作）：默认 4s 轮询（日志 8s），但只有数据签名变化时才整页重绘；
+心跳/流量/运行时长等易变字段原地更新文本；重绘前后保持滚动位置；用户正在输入、打开弹窗或选中文本时自动暂停；
+顶栏提供「自动刷新」开关（持久化到 localStorage）与「刷新」按钮；页面不可见时暂停轮询。
 
 ---
 
