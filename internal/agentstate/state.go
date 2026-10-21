@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"time"
 
 	"nrp/internal/auth"
@@ -35,34 +34,13 @@ type Identity struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-// DefaultDir 返回默认状态目录。
+// DefaultDir 返回默认状态目录：所有平台统一为用户主目录下的 .nrp。
 func DefaultDir() (string, error) {
-	switch runtime.GOOS {
-	case "darwin":
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		return filepath.Join(home, "Library", "Application Support", "nrp"), nil
-	case "windows":
-		if p := os.Getenv("ProgramData"); p != "" {
-			return filepath.Join(p, "nrp"), nil
-		}
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		return filepath.Join(home, "nrp"), nil
-	default:
-		if p := os.Getenv("XDG_STATE_HOME"); p != "" {
-			return filepath.Join(p, "nrp"), nil
-		}
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		return filepath.Join(home, ".local", "state", "nrp"), nil
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
 	}
+	return filepath.Join(home, ".nrp"), nil
 }
 
 // Load 读取状态（不存在时返回空状态）。

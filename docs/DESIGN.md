@@ -110,7 +110,7 @@ agent                                   nrpd
 
 ### 4.1 客户端密钥
 
-- Agent 首次运行在状态目录（macOS `~/Library/Application Support/nrp`，Linux `~/.local/state/nrp`，Windows `%ProgramData%\nrp`）生成 **Ed25519 密钥对**，私钥文件 0600。
+- Agent 首次运行在状态目录 **`~/.nrp`**（所有平台统一使用当前用户主目录下的 `.nrp`）生成 **Ed25519 密钥对**，私钥文件 0600。
 - 服务端只保存**公钥**（base64）。
 - 人类可读"密钥码"：NRP- + base32(SHA-256(pubkey)) 的前 12 字符分 4 组（如 NRP-7K3F-9Q2M-8XZP）。用于审批时肉眼核对，**不参与认证**。
 - 私钥丢失 = 新设备（需重新审批）；管理员可删除旧记录。

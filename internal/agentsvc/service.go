@@ -67,12 +67,15 @@ func Uninstall(out io.Writer) error {
 func installLaunchd(opts InstallOptions) error {
 	plist := launchdPlistPath()
 	args := serviceArgs(opts)
-	logDir := filepath.Join(homeDir(), "Library", "Logs")
+	logDir := filepath.Join(homeDir(), ".nrp")
 	content := launchdPlist(args, filepath.Join(logDir, "nrp-agent.log"), filepath.Join(logDir, "nrp-agent.err.log"))
 	if opts.DryRun {
 		fmt.Fprintln(opts.Out, "# 将写入", plist)
 		fmt.Fprintln(opts.Out, content)
 		return nil
+	}
+	if err := os.MkdirAll(logDir, 0o700); err != nil {
+		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(plist), 0o755); err != nil {
 		return err

@@ -95,22 +95,27 @@ ssh -L 7610:127.0.0.1:7610 root@39.107.230.175
 
 ## 4. 安装客户端（本机 macOS）
 
+客户端数据统一放在当前用户目录下的 `.nrp`（二进制、身份、状态、日志都在这里）：
+
 ```bash
 make agent
-sudo install -m 0755 dist/nrp-agent /usr/local/bin/nrp-agent
+mkdir -p ~/.nrp/bin
+install -m 0755 dist/nrp-agent ~/.nrp/bin/nrp-agent
 
 # 首次运行：登记设备（会打印密钥码并停在"待审批"）
-nrp-agent -s 39.107.230.175:39999
+~/.nrp/bin/nrp-agent -s 39.107.230.175:39999
 
 # 在管理台「设备」页批准（密钥码应一致），Agent 会自动连上
 # 安装为开机自启（launchd），之后无需再手动运行：
-nrp-agent install-service
-nrp-agent status
-tail -f `~/Library/Logs/nrp-agent.log`
+~/.nrp/bin/nrp-agent install-service -s 39.107.230.175:39999
+~/.nrp/bin/nrp-agent status
+tail -f ~/.nrp/nrp-agent.log
 ```
 
-Linux 客户端：`nrp-agent -s host:39999` 后执行 `sudo nrp-agent install-service`（systemd）。
-Windows：`nrp-agent.exe -s host:39999` 首次运行，然后用任务计划程序/服务管理器设置开机启动。
+- macOS 的 LaunchAgent plist 仍在 `~/Library/LaunchAgents/io.nrp.agent.plist`（launchd 固定要求），
+  其 ProgramArguments 指向 `~/.nrp/bin/nrp-agent`，StandardOut/ErrorPath 为 `~/.nrp/nrp-agent.log` / `~/.nrp/nrp-agent.err.log`。
+- Linux 下 `install-service` 写 `/etc/systemd/system/nrp-agent.service`，日志进 journald。
+- Windows：`nrp-agent.exe -s host:39999` 首次运行，然后用任务计划程序/服务管理器设置开机启动；状态目录为 `%USERPROFILE%\.nrp`。
 
 ## 5. 添加第一条映射
 
@@ -170,10 +175,10 @@ ssh root@39.107.230.175 'systemctl stop nrpd && mv /usr/local/bin/nrpd.bak /usr/
 | 服务端数据 | `/var/lib/nrp`（state.json / audit.jsonl / tls/ / initial-admin.txt） |
 | 控制端口 | 39999/tcp（公网可直接连通） |
 | 管理台 | `ssh -L 7610:127.0.0.1:7610 root@39.107.230.175` → http://127.0.0.1:7610 |
-| 客户端 | macOS LaunchAgent `io.nrp.agent`（用户级，开机自启） |
-| 客户端二进制 | `~/Library/Application Support/nrp/bin/nrp-agent` |
-| 客户端状态 | `~/Library/Application Support/nrp/{agent.json,identity.json}` |
-| 客户端日志 | `~/Library/Logs/nrp-agent.log`（stderr：`nrp-agent.err.log`） |
+| 客户端 | macOS LaunchAgent `io.nrp.agent`（用户级，开机自启；plist 在 `~/Library/LaunchAgents/`） |
+| 客户端二进制 | `~/.nrp/bin/nrp-agent` |
+| 客户端状态 | `~/.nrp/{agent.json,identity.json}` |
+| 客户端日志 | `~/.nrp/nrp-agent.log`（stderr：`~/.nrp/nrp-agent.err.log`） |
 | 设备 | `macbook-pro` / 密钥码 `NRP-QCDD-XXIJ-QKVA` / active / online |
 | 公网映射 | 测试用 `127.0.0.1:18080 → :39100` 验证通过后已删除；当前无映射 |
 
@@ -190,7 +195,7 @@ ssh -L 7610:127.0.0.1:7610 root@39.107.230.175
 # 客户端状态 / 重启 / 日志
 launchctl print gui/$(id -u)/io.nrp.agent | head -20
 launchctl kickstart -k gui/$(id -u)/io.nrp.agent
-tail -f ~/Library/Logs/nrp-agent.log
+tail -f ~/.nrp/nrp-agent.log
 # 卸载客户端服务
-~/Library/Application\ Support/nrp/bin/nrp-agent uninstall-service
+~/.nrp/bin/nrp-agent uninstall-service
 ```

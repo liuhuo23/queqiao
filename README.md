@@ -46,10 +46,11 @@ scp dist/nrpd-linux-amd64 root@39.107.230.175:/usr/local/bin/nrpd
 
 ```bash
 make agent
-sudo install -m 0755 dist/nrp-agent /usr/local/bin/nrp-agent
+mkdir -p ~/.nrp/bin
+install -m 0755 dist/nrp-agent ~/.nrp/bin/nrp-agent
 
 # 首次运行：指定服务端地址（之后会记住）
-nrp-agent -s 39.107.230.175:39999
+~/.nrp/bin/nrp-agent -s 39.107.230.175:39999
 
 # 输出（示例）：
 #   ================= 设备待审批 =================
@@ -58,8 +59,12 @@ nrp-agent -s 39.107.230.175:39999
 #   → 在管理台批准后自动连上
 
 # 批准后安装为开机自启（macOS launchd / Linux systemd）
-nrp-agent install-service
+~/.nrp/bin/nrp-agent install-service
 ```
+
+客户端数据统一在 `~/.nrp`：`identity.json`（身份密钥）、`agent.json`（服务端地址与证书指纹）、
+`nrp-agent.log` / `nrp-agent.err.log`（日志）、`bin/nrp-agent`（二进制）。
+macOS 的 LaunchAgent plist 固定在 `~/Library/LaunchAgents/io.nrp.agent.plist`（launchd 要求）。
 
 管理台访问（无需开放端口）：
 
